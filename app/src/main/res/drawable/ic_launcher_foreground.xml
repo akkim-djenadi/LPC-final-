@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Glowing Sun Backdrop in Sunset Orange -->
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M54,24c-11.6,0 -21,9.4 -21,21c0,11.6 9.4,21 21,21c11.6,0 21,-9.4 21,-21c0,-11.6 -9.4,-21 -21,-21z" />
+
+    <!-- Radiant Sun Rays of Montpellier -->
+    <!-- Top -->
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M52,12h4v8h-4z" />
+    <!-- Bottom/Diagonal low -->
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M78,43h8v4h-8z" />
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M22,43h8v4h-8z" />
+    <!-- Diagonals -->
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M70.9,25.3l2.8,2.8l-5.7,5.7l-2.8,-2.8z" />
+    <path
+        android:fillColor="#FF7A00"
+        android:pathData="M31.4,25.3l5.7,5.7l-2.8,2.8l-5.7,-5.7z" />
+
+    <!-- Guide Map Pin Overlay in Crisp Silhouette White -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32c-7.7,0 -14,6.3 -14,14c0,10.5 14,26 14,26s14,-15.5 14,-24c0,-7.7 -6.3,-14 -14,-14z M54,51c-2.8,0 -5,-2.2 -5,-5c0,-2.8 2.2,-5 5,-5c2.8,0 5,2.2 5,5c0,2.8 -2.2,5 -5,5z" />
+
+</vector>

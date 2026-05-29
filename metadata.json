@@ -1,0 +1,6 @@
+{
+  "name": "Le Petit Clapas",
+  "description": "Le guide urbain de Montpellier inspiré du Petit Clapas, avec bons plans, défis de street-art, gestion de jetons pour les Estivales et l'agenda des Clapassiers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
