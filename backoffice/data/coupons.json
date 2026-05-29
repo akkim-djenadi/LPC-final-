@@ -1,0 +1,18 @@
+[
+  {
+    "id": "coup_01",
+    "merchant_id": "mer_st_jean",
+    "title": "Bouteille de Grés de Montpellier Offerte",
+    "description": "Une bouteille Prestige offerte pour l'achat simultané de deux planches gourmandes.",
+    "quota": 12,
+    "active": true
+  },
+  {
+    "id": "coup_02",
+    "merchant_id": "mer_peyrou",
+    "title": "Un café de bienvenue offert",
+    "description": "Un authentique café italien torréfié sur place offert dès votre installation en terrasse.",
+    "quota": 45,
+    "active": true
+  }
+]

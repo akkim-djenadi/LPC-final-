@@ -1,0 +1,69 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mer_st_jean",
+        "name": "Vignoble Saint-Jean",
+        "category": "Cave & Bar",
+        "subcategory": "Bar à Vins / Tapas",
+        "description": "Sélection prestigieuse de crus du Pic Saint-Loup et Grés de Montpellier.",
+        "github_image": "vignoble_st_jean.jpg",
+        "phone": "04 67 00 00 01"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.8794, 43.6085]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mer_antigone",
+        "name": "Le Resto d'Antigone",
+        "category": "Restauration",
+        "subcategory": "Cuisine Locale",
+        "description": "Plats typiques montpelliérains et terrasses ensoleillées.",
+        "github_image": "resto_antigone.jpg",
+        "phone": "04 67 00 00 02"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.8890, 43.6075]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mer_peyrou",
+        "name": "Café de l'Arc",
+        "category": "Restauration",
+        "subcategory": "Café / Brasserie",
+        "description": "Idéalement situé face à l'Arc de Triomphe du Peyrou.",
+        "github_image": "cafe_de_l_arc.jpg",
+        "phone": "04 67 00 00 03"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.8715, 43.6111]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mer_beaux_arts",
+        "name": "Artisan Chocolatier Clapas",
+        "category": "Shopping",
+        "subcategory": "Chocolaterie / Confiserie",
+        "description": "Spécialités de chocolats artisanaux et macarons maison.",
+        "github_image": "chocolat_clapas.jpg",
+        "phone": "04 67 00 00 04"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3.8820, 43.6150]
+      }
+    }
+  ]
+}

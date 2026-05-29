@@ -1,0 +1,21 @@
+[
+  {
+    "id": "game_piste_01",
+    "title": "Jeu de Piste Géolocalisé 🗺️",
+    "description": "Course contre la montre en réalité augmentée. Trouvez le spot mystère et stoppez le chronomètre !",
+    "enigma": "Je possède une fontaine majestueuse au centre de Montpellier, et trois déesses veillent sur moi. Les gens s'y rejoignent souvent avant de faire la fête. Quelle est cette magnifique place ?",
+    "target_lat": 43.6085,
+    "target_lng": 3.8794,
+    "active": true,
+    "best_score_seconds": 48,
+    "best_score_player": "Thomas_Peyrou"
+  },
+  {
+    "id": "game_goeland_01",
+    "title": "L'Envol du Goéland 🐦",
+    "description": "Évitez les obstacles et volez sur la place de la Comédie !",
+    "active": true,
+    "best_score_seconds": 120,
+    "best_score_player": "Clara_BeauxArts"
+  }
+]
