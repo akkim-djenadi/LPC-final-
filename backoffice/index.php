@@ -1,4 +1,25 @@
 <?php
+// Secure Dynamic Backup File Exporter
+if (isset($_GET['download'])) {
+    $file_to_download = '';
+    switch($_GET['download']) {
+        case 'commerces': $file_to_download = 'data/commerces.geojson'; break;
+        case 'coupons': $file_to_download = 'data/coupons.json'; break;
+        case 'jeux': $file_to_download = 'data/jeux.json'; break;
+    }
+    if (!empty($file_to_download) && file_exists($file_to_download)) {
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="'.basename($file_to_download).'"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($file_to_download));
+        readfile($file_to_download);
+        exit;
+    }
+}
+
 // Load current databases dynamically
 $commerces_file = 'data/commerces.geojson';
 $coupons_file = 'data/coupons.json';
@@ -139,39 +160,115 @@ include 'header.php';
         <?php endif; ?>
     </div>
 
-    <!-- Right Column: Interactive GitHub Photo Sync Tutorial -->
-    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h4 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
-            <span class="material-symbols-rounded text-blue-500">sync_alt</span>
-            <span>Synchronisation Image GitHub</span>
-        </h4>
-        <div class="text-xs text-slate-600 space-y-3 leading-relaxed">
-            <p>
-                Vous utilisez un répertoire GitHub dédié pour stocker les photos des commerçants de l'Écusson. Vos clients peuvent ainsi charger instantanément les visuels correspondants.
-            </p>
-            
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p class="font-bold text-slate-800 mb-1.5 flex items-center">
-                    <span class="material-symbols-rounded text-indigo-500 text-sm mr-1">link</span>
-                    Comment ça fonctionne ?
+    <!-- Right Column: Interactive GitHub Photo Sync Tutorial & System Configuration -->
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
+                <span class="material-symbols-rounded text-blue-500">sync_alt</span>
+                <span>Synchronisation Image GitHub</span>
+            </h4>
+            <div class="text-xs text-slate-600 space-y-3 leading-relaxed">
+                <p>
+                    Vous utilisez un répertoire GitHub dédié pour stocker les photos des commerçants de l'Écusson. Vos clients peuvent ainsi charger instantanément les visuels correspondants.
                 </p>
-                <ol class="list-decimal list-inside space-y-1">
-                    <li>Déposez vos images (ex: <code class="bg-slate-200 px-1 rounded font-semibold text-slate-900">vignoble_st_jean.jpg</code>) directement dans votre dossier GitHub <a href="https://github.com/akkim-djenadi/le-petit-clapas-/tree/main/images_commerces" target="_blank" class="text-blue-500 hover:underline">images_commerces</a>.</li>
-                    <li>Renseignez le nom exact de ce fichier dans la fiche établissement correspondante dans ce back-office.</li>
-                    <li>Le serveur génère le lien brut CDN GitHub direct :
-                        <br>
-                        <span class="text-[10px]/snug font-mono text-emerald-600 block mt-1 break-all">https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/vignoble_st_jean.jpg</span>
-                    </li>
-                </ol>
-            </div>
-
-            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200/50 flex space-x-3 mt-4">
-                <span class="text-xl">💡</span>
-                <div>
-                    <h5 class="font-bold text-amber-900">Pas de base de données SQL complexe requise !</h5>
-                    <p class="text-[11px] text-amber-800 lead-relaxed">
-                        Toutes les modifications en direct sur vos coordonnées géographiques et bons sont stockées de façon sécurisée sous forme de fichiers plats JSON et GeoJSON. Vous pouvez instantanément migrer ce dossier via votre FTP vers n'importe quel hébergeur simple PHP !
+                
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <p class="font-bold text-slate-800 mb-1.5 flex items-center">
+                        <span class="material-symbols-rounded text-indigo-500 text-sm mr-1">link</span>
+                        Comment ça fonctionne ?
                     </p>
+                    <ol class="list-decimal list-inside space-y-1">
+                        <li>Déposez vos images (ex: <code class="bg-slate-200 px-1 rounded font-semibold text-slate-900">vignoble_st_jean.jpg</code>) directement dans votre dossier GitHub <a href="https://github.com/akkim-djenadi/le-petit-clapas-/tree/main/images_commerces" target="_blank" class="text-blue-500 hover:underline">images_commerces</a>.</li>
+                        <li>Renseignez le nom exact de ce fichier dans la fiche établissement correspondante dans ce back-office.</li>
+                        <li>Le serveur génère le lien brut CDN GitHub direct :
+                            <br>
+                            <span class="text-[10px]/snug font-mono text-emerald-600 block mt-1 break-all">https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/vignoble_st_jean.jpg</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200/50 flex space-x-3 mt-4">
+                    <span class="text-xl">💡</span>
+                    <div>
+                        <h5 class="font-bold text-amber-900">Pas de base de données SQL complexe requise !</h5>
+                        <p class="text-[11px] text-amber-800 lead-relaxed">
+                            Toutes les modifications en direct sur vos coordonnées géographiques et bons sont stockées de façon sécurisée sous forme de fichiers plats JSON et GeoJSON. Vous pouvez instantanément migrer ce dossier via votre FTP vers n'importe quel hébergeur simple PHP !
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backups and API Integrity Panels -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="text-base font-bold text-slate-900 mb-3 flex items-center space-x-2">
+                <span class="material-symbols-rounded text-emerald-500">shield_keyhole</span>
+                <span>Intégrité Système & Sauvegardes</span>
+            </h4>
+            <p class="text-xs text-slate-500 mb-4">
+                Puisque vos données sont stockées sous forme de fichiers plats, protégez votre travail en téléchargeant des sauvegardes régulières (.json et .geojson) de votre configuration.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Backup actions -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-[10px] font-bold text-emerald-600 block tracking-wider uppercase">Exporter les bases (.JSON / .GeoJSON)</span>
+                    <div class="flex flex-col space-y-2">
+                        <a href="index.php?download=commerces" class="flex items-center justify-between px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition">
+                            <span class="flex items-center space-x-2">
+                                <span class="material-symbols-rounded text-sm text-slate-400">download</span>
+                                <span>commerces.geojson</span>
+                            </span>
+                            <span class="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded">GeoJSON</span>
+                        </a>
+                        <a href="index.php?download=coupons" class="flex items-center justify-between px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition">
+                            <span class="flex items-center space-x-2">
+                                <span class="material-symbols-rounded text-sm text-slate-400">download</span>
+                                <span>coupons.json</span>
+                            </span>
+                            <span class="text-[10px] bg-cyan-50 text-cyan-600 font-bold px-1.5 py-0.5 rounded">JSON</span>
+                        </a>
+                        <a href="index.php?download=jeux" class="flex items-center justify-between px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition">
+                            <span class="flex items-center space-x-2">
+                                <span class="material-symbols-rounded text-sm text-slate-400">download</span>
+                                <span>jeux.json</span>
+                            </span>
+                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded">JSON</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- API Connectivity Panel -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-indigo-600 block tracking-wider uppercase mb-1.5">Permissions & API Rest</span>
+                        <div class="space-y-1.5 text-[11px] text-slate-600">
+                            <div class="flex items-center justify-between">
+                                <span>Écritures Commerces :</span>
+                                <span class="<?php echo is_writable($commerces_file) ? 'text-emerald-600' : 'text-rose-500'; ?> font-bold">
+                                    <?php echo is_writable($commerces_file) ? 'OK' : 'Bloqué'; ?>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>Écritures Coupons :</span>
+                                <span class="<?php echo is_writable($coupons_file) ? 'text-emerald-600' : 'text-rose-500'; ?> font-bold">
+                                    <?php echo is_writable($coupons_file) ? 'OK' : 'Bloqué'; ?>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>Écritures Jeux :</span>
+                                <span class="<?php echo is_writable($jeux_file) ? 'text-emerald-600' : 'text-rose-500'; ?> font-bold">
+                                    <?php echo is_writable($jeux_file) ? 'OK' : 'Bloqué'; ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 mt-3">
+                        <a href="api.php?task=all" target="_blank" class="flex items-center justify-center p-2.5 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 rounded-lg transition space-x-1.5">
+                            <span class="material-symbols-rounded text-sm">api</span>
+                            <span>Tester le flux API JSON ↗</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

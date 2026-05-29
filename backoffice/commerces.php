@@ -136,6 +136,10 @@ if (isset($_GET['edit_id'])) {
 include 'header.php';
 ?>
 
+<!-- Leaflet.css & Leaflet.js Assets for Montpellier Interactive Alignment -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <!-- Feedback Messages -->
 <?php if (!empty($feedback_msg)): ?>
     <div class="auto-dismiss mb-6 p-4 rounded-xl border <?php echo ($feedback_type === 'success') ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'; ?> flex items-center space-x-2">
@@ -190,11 +194,11 @@ include 'header.php';
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Latitude (GPS) *</label>
-                        <input type="text" name="lat" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:border-orange-500 focus:outline-none" placeholder="Ex: 43.6085" value="<?php echo htmlspecialchars($edit_item['lat']); ?>">
+                        <input type="text" name="lat" required id="input_latitude" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:border-orange-500 focus:outline-none" placeholder="Ex: 43.6085" value="<?php echo htmlspecialchars($edit_item['lat']); ?>">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Longitude (GPS) *</label>
-                        <input type="text" name="lng" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:border-orange-500 focus:outline-none" placeholder="Ex: 3.8794" value="<?php echo htmlspecialchars($edit_item['lng']); ?>">
+                        <input type="text" name="lng" required id="input_longitude" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:border-orange-500 focus:outline-none" placeholder="Ex: 3.8794" value="<?php echo htmlspecialchars($edit_item['lng']); ?>">
                     </div>
                 </div>
 
@@ -228,6 +232,18 @@ include 'header.php';
 
     <!-- Active Establishments Table -->
     <div class="lg:col-span-2 space-y-6">
+        <!-- Interactive Cartography Preview -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center space-x-2">
+                <span class="material-symbols-rounded text-orange-500">map</span>
+                <span>Cartographie Interactive - Montpellier Écusson</span>
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">
+                Cliquez n'importe où sur la carte pour déplacer le curseur et mettre à jour les coordonnées du commerce. Vous pouvez également faire glisser le repère orange actif 📍.
+            </p>
+            <div id="map" class="h-80 w-full rounded-xl border border-slate-200 z-0"></div>
+        </div>
+
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
@@ -324,5 +340,125 @@ include 'header.php';
         </div>
     </div>
 </div>
+
+<!-- Leaflet JavaScript Mapping Alignment Logic -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const commercesData = <?php echo json_encode($commerces, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    const isEditMode = <?php echo $edit_mode ? 'true' : 'false'; ?>;
+    const currentLat = <?php echo floatval($edit_item['lat']); ?>;
+    const currentLng = <?php echo floatval($edit_item['lng']); ?>;
+    
+    // Initialize Leaflet Map centering the focused establishment coordinates
+    const map = L.map('map').setView([currentLat, currentLng], 15);
+    
+    // Voyager high-contrast clean design tile layout
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    // DivIcon builder for stylish local pins without broken assets
+    function createCustomPin(color, iconEmoji) {
+        return L.divIcon({
+            html: `<div class="flex items-center justify-center w-8 h-8 rounded-full shadow-md border-2 border-white text-white font-semibold text-xs transition duration-150 transform hover:scale-110" style="background-color: ${color}; transform: translateY(-30%);">
+                     <span>${iconEmoji}</span>
+                   </div>`,
+            className: 'custom-div-pin',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+    }
+
+    // Editable focused selector marker configuration
+    const editIcon = createCustomPin('#f97316', '📍');
+    let selectionMarker = L.marker([currentLat, currentLng], {
+        draggable: true,
+        icon: editIcon
+    }).addTo(map);
+
+    if (isEditMode) {
+        selectionMarker.bindTooltip("Établissement sélectionné", { permanent: true, direction: 'top', className: 'text-[10px] bg-slate-900 text-white font-semibold rounded px-1.5' });
+    } else {
+        selectionMarker.bindTooltip("Nouveau repère", { permanent: true, direction: 'top', className: 'text-[10px] bg-orange-500 text-white font-semibold rounded px-1.5' });
+    }
+
+    // Drag Callback updates coordinates inputs
+    selectionMarker.on('dragend', function (e) {
+        const position = selectionMarker.getLatLng();
+        document.getElementById('input_latitude').value = position.lat.toFixed(6);
+        document.getElementById('input_longitude').value = position.lng.toFixed(6);
+    });
+
+    // Tap target updates position on click
+    map.on('click', function (e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        selectionMarker.setLatLng([lat, lng]);
+        document.getElementById('input_latitude').value = lat.toFixed(6);
+        document.getElementById('input_longitude').value = lng.toFixed(6);
+    });
+
+    // Populate existing stores landmarks as guides on map
+    commercesData.forEach(function(feature) {
+        const props = feature.properties;
+        // Skip current edit target to avoid overlapping
+        if (isEditMode && props.id === '<?php echo htmlspecialchars($edit_item['id']); ?>') {
+            return;
+        }
+        
+        if (feature.geometry && feature.geometry.coordinates) {
+            const lng = feature.geometry.coordinates[0];
+            const lat = feature.geometry.coordinates[1];
+            
+            let color = '#4f46e5'; // Default indigo
+            let emoji = '🏢';
+            const cat = props.category || '';
+            
+            if (cat === 'Restauration') {
+                color = '#ef4444';
+                emoji = '🍔';
+            } else if (cat === 'Cave & Bar') {
+                color = '#10b981';
+                emoji = '🍷';
+            } else if (cat === 'Shopping') {
+                color = '#f59e0b';
+                emoji = '🛍️';
+            } else if (cat === 'Culture') {
+                color = '#ec4899';
+                emoji = '🎭';
+            } else if (cat === 'Loisirs') {
+                color = '#06b6d4';
+                emoji = '🎮';
+            }
+            
+            const pinIcon = createCustomPin(color, emoji);
+            const refMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
+            
+            const imgName = props.github_image || '';
+            const imgUrl = imgName 
+                ? `https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/${encodeURIComponent(imgName)}`
+                : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&q=80";
+                
+            const popupBody = `
+                <div class="p-1 space-y-1" style="min-width: 140px; font-family: 'Plus Jakarta Sans', sans-serif;">
+                    <div style="height: 55px; width: 100%; border-radius: 4px; overflow: hidden;">
+                        <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <span class="block text-xs" style="font-weight: 700; color: #1e293b; line-height: 1.2;">${props.name}</span>
+                        <span class="block text-[10px]" style="color: #64748b;">${cat} (${props.subcategory || ''})</span>
+                    </div>
+                    <div style="margin-top: 4px; border-top: 1px solid #f1f5f9; padding-top: 4px;">
+                        <a href="commerces.php?edit_id=${props.id}" style="font-size: 10px; font-weight: 700; color: #f97316; text-decoration: none;">Modifier ✏️</a>
+                    </div>
+                </div>
+            `;
+            refMarker.bindPopup(popupBody);
+        }
+    });
+});
+</script>
 
 <?php include 'footer.php'; ?>
