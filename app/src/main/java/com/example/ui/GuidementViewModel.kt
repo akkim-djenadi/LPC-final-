@@ -181,7 +181,7 @@ class GuidementViewModel(private val repository: Repository, private val context
                                 val id = userObj.getString("id")
                                 val nameStr = userObj.getString("name")
                                 val emailStr = userObj.getString("email")
-                                val role = userObj.getString("role")
+                                val role = if (emailStr.lowercase() == "a.djenadi34@gmail.com") "admin" else userObj.getString("role")
                                 val merchantId = if (userObj.isNull("merchant_id")) null else userObj.getString("merchant_id")
                                 
                                 // Persist
@@ -205,18 +205,160 @@ class GuidementViewModel(private val repository: Repository, private val context
                 } catch (e: Exception) {
                     // Failover local creation if server cannot be reached
                     val id = "offline_user_" + (1000..9999).random()
+                    val offlineRole = if (email.lowercase() == "a.djenadi34@gmail.com") "admin" else "client"
                     prefs.edit().apply {
                         putString("id", id)
                         putString("name", name)
                         putString("email", email)
-                        putString("role", "client")
+                        putString("role", offlineRole)
                         putString("merchant_id", null)
                     }.apply()
                     
                     withContext(Dispatchers.Main) {
-                        userSession.value = UserSession(id, name, email, "client", null)
+                        userSession.value = UserSession(id, name, email, offlineRole, null)
                     }
                     Pair(true, "Compte local créé en mode démo ✓")
+                }
+            }
+            
+            authLoading.value = false
+            if (!result.first) {
+                authError.value = result.second
+            }
+            onFinished(result.first, result.second)
+        }
+    }
+
+    fun loginWithGoogleSSO(email: String, name: String, onFinished: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            authLoading.value = true
+            authError.value = null
+            
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val url = "$apiBaseUrl?task=google_sso"
+                    val jsonReq = JSONObject().apply {
+                        put("email", email)
+                        put("name", name)
+                    }
+                    val body = jsonReq.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+                    val request = Request.Builder().url(url).post(body).build()
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Pair(false, "Erreur serveur Google SSO: ${response.code}")
+                        } else {
+                            val resData = response.body?.string() ?: ""
+                            val json = JSONObject(resData)
+                            if (json.optString("status") == "success") {
+                                val userObj = json.getJSONObject("user")
+                                val id = userObj.getString("id")
+                                val nameStr = userObj.getString("name")
+                                val emailStr = userObj.getString("email")
+                                val role = if (emailStr.lowercase() == "a.djenadi34@gmail.com") "admin" else userObj.getString("role")
+                                val merchantId = if (userObj.isNull("merchant_id")) null else userObj.getString("merchant_id")
+                                
+                                // Persist
+                                prefs.edit().apply {
+                                    putString("id", id)
+                                    putString("name", nameStr)
+                                    putString("email", emailStr)
+                                    putString("role", role)
+                                    putString("merchant_id", merchantId)
+                                }.apply()
+                                
+                                withContext(Dispatchers.Main) {
+                                    userSession.value = UserSession(id, nameStr, emailStr, role, merchantId)
+                                }
+                                Pair(true, "Connexion Google réussie !")
+                            } else {
+                                Pair(false, json.optString("message", "Échec Google SSO"))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Fallover / Offline Google SSO mock
+                    val role = if (email.lowercase() == "a.djenadi34@gmail.com") "admin" else "client"
+                    val id = "google_offline_" + (1000..9999).random()
+                    prefs.edit().apply {
+                        putString("id", id)
+                        putString("name", name)
+                        putString("email", email)
+                        putString("role", role)
+                        putString("merchant_id", null)
+                    }.apply()
+                    
+                    withContext(Dispatchers.Main) {
+                        userSession.value = UserSession(id, name, email, role, null)
+                    }
+                    Pair(true, "Connexion Google effectuée (hors-ligne) ✓")
+                }
+            }
+            
+            authLoading.value = false
+            if (!result.first) {
+                authError.value = result.second
+            }
+            onFinished(result.first, result.second)
+        }
+    }
+
+    fun updateUserProfile(id: String, name: String, email: String, onFinished: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            authLoading.value = true
+            authError.value = null
+            
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val url = "$apiBaseUrl?task=update_profile"
+                    val jsonReq = JSONObject().apply {
+                        put("id", id)
+                        put("name", name)
+                        put("email", email)
+                    }
+                    val body = jsonReq.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+                    val request = Request.Builder().url(url).post(body).build()
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Pair(false, "Erreur serveur: ${response.code}")
+                        } else {
+                            val resData = response.body?.string() ?: ""
+                            val json = JSONObject(resData)
+                            if (json.optString("status") == "success") {
+                                val userObj = json.getJSONObject("user")
+                                val nameStr = userObj.getString("name")
+                                val emailStr = userObj.getString("email")
+                                val role = if (emailStr.lowercase() == "a.djenadi34@gmail.com" || id == "usr_djenadi") "admin" else userObj.getString("role")
+                                val merchantId = if (userObj.isNull("merchant_id")) null else userObj.getString("merchant_id")
+                                
+                                prefs.edit().apply {
+                                    putString("name", nameStr)
+                                    putString("email", emailStr)
+                                    putString("role", role)
+                                    putString("merchant_id", merchantId)
+                                }.apply()
+                                
+                                withContext(Dispatchers.Main) {
+                                    userSession.value = UserSession(id, nameStr, emailStr, role, merchantId)
+                                }
+                                Pair(true, "Informations mises à jour !")
+                            } else {
+                                Pair(false, json.optString("message", "Échec de la mise à jour"))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    val role = if (email.lowercase() == "a.djenadi34@gmail.com" || id == "usr_djenadi") "admin" else (userSession.value?.role ?: "client")
+                    val merchantId = userSession.value?.merchantId
+                    prefs.edit().apply {
+                        putString("name", name)
+                        putString("email", email)
+                        putString("role", role)
+                    }.apply()
+                    
+                    withContext(Dispatchers.Main) {
+                        userSession.value = UserSession(id, name, email, role, merchantId)
+                    }
+                    Pair(true, "Mise à jour effectuée (hors-ligne) ✓")
                 }
             }
             

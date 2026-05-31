@@ -1,5 +1,13 @@
 [
   {
+    "id": "usr_djenadi",
+    "name": "Akkim Djenadi",
+    "email": "a.djenadi34@gmail.com",
+    "password": "clapasadmin",
+    "role": "admin",
+    "merchant_id": null
+  },
+  {
     "id": "usr_admin",
     "name": "Administrateur Clapas",
     "email": "admin@clapas.fr",

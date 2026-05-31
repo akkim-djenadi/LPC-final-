@@ -5071,12 +5071,23 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
     val authLoading by viewModel.authLoading.collectAsStateWithLifecycle()
     val authError by viewModel.authError.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var inputName by remember(showEditProfileDialog, session.name) { mutableStateOf(session.name ?: "") }
+    var inputEmail by remember(showEditProfileDialog, session.email) { mutableStateOf(session.email ?: "") }
+    var updateError by remember(showEditProfileDialog) { mutableStateOf<String?>(null) }
+    var isUpdating by remember(showEditProfileDialog) { mutableStateOf(false) }
+
     if (!session.isLoggedIn) {
         var isRegisterMode by remember { mutableStateOf(true) } // Default is registration
         var email by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var name by remember { mutableStateOf("") }
         var showToastMsg by remember { mutableStateOf<String?>(null) }
+        var showGoogleSsoChooser by remember { mutableStateOf(false) }
+        var customGoogleEmail by remember { mutableStateOf("") }
+        var customGoogleName by remember { mutableStateOf("") }
+        var showCustomGoogleInput by remember { mutableStateOf(false) }
 
         Column(
             modifier = Modifier
@@ -5228,6 +5239,55 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                        Text(
+                            text = " OU ",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MontpellierNavyLight,
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        )
+                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Google SSO Button with classic visual styling
+                    Button(
+                        onClick = { showGoogleSsoChooser = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("G", color = Color(0xFF4285F4), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("o", color = Color(0xFFEA4335), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("o", color = Color(0xFFFBBC05), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("g", color = Color(0xFF4285F4), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("l", color = Color(0xFF34A853), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Text("e", color = Color(0xFFEA4335), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Continuer avec Google",
+                                fontWeight = FontWeight.Bold,
+                                color = MontpellierNavyDark,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     TextButton(
                         onClick = { isRegisterMode = !isRegisterMode }
                     ) {
@@ -5254,6 +5314,202 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
+                }
+            }
+        }
+
+        // Animated Google SSO Chooser Popup
+        if (showGoogleSsoChooser) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { 
+                showGoogleSsoChooser = false 
+                showCustomGoogleInput = false
+            }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Google Brand Identity header
+                        Row(modifier = Modifier.padding(bottom = 8.dp)) {
+                            Text("G", color = Color(0xFF4285F4), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("o", color = Color(0xFFEA4335), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("o", color = Color(0xFFFBBC05), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("g", color = Color(0xFF4285F4), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("l", color = Color(0xFF34A853), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("e", color = Color(0xFFEA4335), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        }
+
+                        Text(
+                            text = "Se connecter avec Google",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MontpellierNavyDark
+                        )
+                        Text(
+                            text = "Choisissez un compte pour continuer sur Le Petit Clapas",
+                            fontSize = 11.sp,
+                            color = MontpellierNavyLight,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
+                        )
+
+                        if (!showCustomGoogleInput) {
+                            // Primary Admin Option (Automatically promotes to Super-Admin)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showGoogleSsoChooser = false
+                                        viewModel.loginWithGoogleSSO("a.djenadi34@gmail.com", "Akkim Djenadi") { success, msg ->
+                                            showToastMsg = msg
+                                        }
+                                    }
+                                    .border(1.dp, MontpellierOrangePrimary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                    .background(MontpellierOrangeLight.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MontpellierOrangePrimary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("AD", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Akkim Djenadi", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MontpellierNavyDark)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .background(MontpellierOrangePrimary, RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Admin 👑", color = Color.White, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text("a.djenadi34@gmail.com", fontSize = 10.sp, color = MontpellierNavyLight)
+                                }
+                                Icon(Icons.Default.ArrowForward, null, tint = MontpellierNavyLight, modifier = Modifier.size(14.dp))
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Regular Client Option
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showGoogleSsoChooser = false
+                                        viewModel.loginWithGoogleSSO("visiteur.clapas@gmail.com", "Julie Clapas") { success, msg ->
+                                            showToastMsg = msg
+                                        }
+                                    }
+                                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MontpellierNavyPrimary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("JC", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Julie Clapas", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MontpellierNavyDark)
+                                    Text("visiteur.clapas@gmail.com", fontSize = 10.sp, color = MontpellierNavyLight)
+                                }
+                                Icon(Icons.Default.ArrowForward, null, tint = MontpellierNavyLight, modifier = Modifier.size(14.dp))
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            TextButton(
+                                onClick = { showCustomGoogleInput = true }
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = MontpellierOrangePrimary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Utiliser un autre compte", color = MontpellierOrangePrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            // Custom SSO Input Option
+                            OutlinedTextField(
+                                value = customGoogleName,
+                                onValueChange = { customGoogleName = it },
+                                label = { Text("Votre Nom complet") },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MontpellierOrangePrimary,
+                                    unfocusedBorderColor = Color(0xFFCBD5E1)
+                                ),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            OutlinedTextField(
+                                value = customGoogleEmail,
+                                onValueChange = { customGoogleEmail = it },
+                                label = { Text("Adresse email Google") },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MontpellierOrangePrimary,
+                                    unfocusedBorderColor = Color(0xFFCBD5E1)
+                                ),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    if (customGoogleEmail.isNotBlank()) {
+                                        showGoogleSsoChooser = false
+                                        val finalName = if (customGoogleName.isBlank()) customGoogleEmail.substringBefore("@") else customGoogleName
+                                        viewModel.loginWithGoogleSSO(customGoogleEmail, finalName) { success, msg ->
+                                            showToastMsg = msg
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MontpellierOrangePrimary),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Valider la connexion SSO", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            TextButton(
+                                onClick = { showCustomGoogleInput = false }
+                            ) {
+                                Text("Retour aux options", color = MontpellierNavyLight, fontSize = 11.sp)
+                            }
+                        }
+
+                        Divider(color = Color(0xFFE2E8F0), modifier = Modifier.padding(vertical = 12.dp))
+
+                        Text(
+                            text = "En continuant, Google partagera vos données avec Le Petit Clapas de manière sécurisée.",
+                            fontSize = 9.sp,
+                            color = MontpellierNavyLight,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 13.sp
+                        )
+                    }
                 }
             }
         }
@@ -5314,15 +5570,32 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
                             fontWeight = FontWeight.Black
                         )
                     }
-                    IconButton(
-                        onClick = { viewModel.logout() },
-                        modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Déconnexion",
-                            tint = Color.White
-                        )
+                        IconButton(
+                            onClick = { showEditProfileDialog = true },
+                            modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Modifier mon profil",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.logout() },
+                            modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = "Déconnexion",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
                 
@@ -7101,6 +7374,146 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
                             color = Color.White,
                             fontSize = 12.sp
                         )
+                    }
+                }
+            }
+        }
+
+        if (showEditProfileDialog) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isUpdating) showEditProfileDialog = false }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(MontpellierOrangeLight, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = MontpellierOrangePrimary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Modifier mes informations",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = MontpellierNavyDark
+                        )
+                        Text(
+                            text = "Mettez à jour vos informations de compte pour Le Petit Clapas.",
+                            fontSize = 11.sp,
+                            color = MontpellierNavyLight,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 2.dp, bottom = 20.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = inputName,
+                            onValueChange = { inputName = it },
+                            label = { Text("Nom complet") },
+                            leadingIcon = { Icon(Icons.Default.Person, null, tint = MontpellierNavyLight) },
+                            singleLine = true,
+                            enabled = !isUpdating,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MontpellierOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1)
+                            ),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = inputEmail,
+                            onValueChange = { inputEmail = it },
+                            label = { Text("Adresse email") },
+                            leadingIcon = { Icon(Icons.Default.Email, null, tint = MontpellierNavyLight) },
+                            singleLine = true,
+                            enabled = !isUpdating && (session.email?.lowercase() != "a.djenadi34@gmail.com" && session.id != "usr_djenadi"),
+                            supportingText = if (session.email?.lowercase() == "a.djenadi34@gmail.com" || session.id == "usr_djenadi") {
+                                { Text("L'email de l'administrateur principal ne peut pas être modifié.", color = MontpellierNavyLight, fontSize = 9.sp) }
+                            } else null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MontpellierOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1)
+                            ),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        if (updateError != null) {
+                            Text(
+                                text = updateError!!,
+                                color = Color.Red,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        if (isUpdating) {
+                            CircularProgressIndicator(
+                                color = MontpellierOrangePrimary,
+                                modifier = Modifier.size(24.dp).padding(bottom = 12.dp)
+                            )
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { showEditProfileDialog = false },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                                ) {
+                                    Text("Annuler", color = MontpellierNavyDark, fontSize = 12.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (inputName.isBlank() || inputEmail.isBlank()) {
+                                            updateError = "Le nom et l'email ne peuvent pas être vides."
+                                            return@Button
+                                        }
+                                        isUpdating = true
+                                        updateError = null
+                                        viewModel.updateUserProfile(session.id ?: "", inputName, inputEmail) { success, msg ->
+                                            isUpdating = false
+                                            if (success) {
+                                                showEditProfileDialog = false
+                                                android.widget.Toast.makeText(context, "Profil mis à jour avec succès !", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                updateError = msg
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1.5f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MontpellierOrangePrimary),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Enregistrer", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             }
