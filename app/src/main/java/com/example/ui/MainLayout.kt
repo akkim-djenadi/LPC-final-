@@ -45,7 +45,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -77,6 +77,7 @@ fun MainLayout(viewModel: GuidementViewModel) {
     
     val wallet by viewModel.wallet.collectAsStateWithLifecycle()
     val wonAdvantageTickets by viewModel.wonAdvantageTickets.collectAsStateWithLifecycle()
+    val session by viewModel.userSession.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
@@ -142,16 +143,16 @@ fun MainLayout(viewModel: GuidementViewModel) {
                     onClick = { currentTab = AppTab.PROFIL },
                     icon = { 
                         BadgedBox(badge = {
-                            if ((wallet?.tokens ?: 0) > 0) {
+                            if (session.isLoggedIn && (wallet?.tokens ?: 0) > 0) {
                                 Badge(containerColor = MontpellierOrangePrimary) {
                                     Text(wallet?.tokens.toString(), color = Color.White)
                                 }
                             }
                         }) {
-                            Icon(if (currentTab == AppTab.PROFIL) Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle, contentDescription = "Profil")
+                            Icon(if (currentTab == AppTab.PROFIL) Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle, contentDescription = if (session.isLoggedIn) "Profil" else "Inscription")
                         }
                     },
-                    label = { Text("Profil") },
+                    label = { Text(if (session.isLoggedIn) "Profil" else "Inscription") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MontpellierOrangePrimary,
                         unselectedIconColor = MontpellierNavyLight,
@@ -1108,8 +1109,9 @@ fun generateOsmHtml(challenges: List<Challenge>, rawEsts: List<Establishment>): 
                     zoomControl: false
                 }).setView([43.6107, 3.8767], 14);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20,
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
                 }).addTo(map);
 
                 // Add zoom control at bottom right
@@ -1207,7 +1209,7 @@ fun MapScreen(viewModel: GuidementViewModel) {
                 },
                 update = { webView ->
                     val html = generateOsmHtml(challenges, rawEsts)
-                    webView.loadDataWithBaseURL("https://openstreetmap.org", html, "text/html", "UTF-8", null)
+                    webView.loadDataWithBaseURL("https://localhost", html, "text/html", "UTF-8", null)
                 }
             )
         }
@@ -5065,15 +5067,213 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
     val completedChallenges = challenges.filter { it.isCompleted }
     val favoriteEsts = establishments.filter { it.isFavorite }
 
-    // Portal subtabs: 0 = Espace Utilisateur (Client), 1 = Espace Commerçant (Merchant)
-    var activeSubTab by remember { mutableStateOf(0) }
+    val session by viewModel.userSession.collectAsStateWithLifecycle()
+    val authLoading by viewModel.authLoading.collectAsStateWithLifecycle()
+    val authError by viewModel.authError.collectAsStateWithLifecycle()
+
+    if (!session.isLoggedIn) {
+        var isRegisterMode by remember { mutableStateOf(true) } // Default is registration
+        var email by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
+        var name by remember { mutableStateOf("") }
+        var showToastMsg by remember { mutableStateOf<String?>(null) }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(MontpellierOrangeLight, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isRegisterMode) Icons.Default.PersonAdd else Icons.Default.VpnKey,
+                            contentDescription = null,
+                            tint = MontpellierOrangePrimary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = if (isRegisterMode) "Création de Compte client 🐾" else "Connexion Espace Clapas 🍇",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MontpellierNavyDark
+                    )
+                    
+                    Text(
+                        text = if (isRegisterMode) 
+                            "Inscrivez-vous pour rejoindre l'aventure urbaine, valider des défis et gagner des Jetons. (Les comptes commerçants sont réservés au Back-Office)" 
+                            else "Accédez à votre portefeuille de billets et stands des Estivales.",
+                        fontSize = 11.sp,
+                        color = MontpellierNavyLight,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 20.dp, start = 8.dp, end = 8.dp)
+                    )
+
+                    if (isRegisterMode) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Votre Nom") },
+                            leadingIcon = { Icon(Icons.Default.Person, null, tint = MontpellierNavyLight) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MontpellierOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1)
+                            ),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Adresse email") },
+                        leadingIcon = { Icon(Icons.Default.Email, null, tint = MontpellierNavyLight) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MontpellierOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Mot de passe") },
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = MontpellierNavyLight) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MontpellierOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    authError?.let { err ->
+                        Text(
+                            text = err,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+
+                    if (authLoading) {
+                        CircularProgressIndicator(
+                            color = MontpellierOrangePrimary,
+                            modifier = Modifier.size(24.dp).padding(bottom = 16.dp)
+                        )
+                    } else {
+                        Button(
+                            onClick = {
+                                if (isRegisterMode) {
+                                    if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                        showToastMsg = "Veuillez remplir tous les champs."
+                                    } else {
+                                        viewModel.register(name, email, password) { success, msg ->
+                                            showToastMsg = msg
+                                        }
+                                    }
+                                } else {
+                                    if (email.isBlank() || password.isBlank()) {
+                                        showToastMsg = "Veuillez remplir les champs obligatoires."
+                                    } else {
+                                        viewModel.login(email, password) { success, msg ->
+                                            showToastMsg = msg
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MontpellierOrangePrimary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = if (isRegisterMode) "Créer mon compte client 🐾" else "Se connecter au Clapas 🍇",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = { isRegisterMode = !isRegisterMode }
+                    ) {
+                        Text(
+                            text = if (isRegisterMode) "Déjà inscrit ? Connectez-vous" else "Nouveau ? Créer un compte client",
+                            color = MontpellierNavyPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            
+            showToastMsg?.let { msg ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MontpellierNavyDark),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.padding(top = 12.dp)
+                ) {
+                    Text(
+                        text = msg,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    // Portal subtabs: 0 = Espace Client, 1 = Espace Commerçant, 2 = Espace Admin
+    var activeSubTab by remember(session.role) { 
+        mutableStateOf(if (session.role == "commercant") 1 else if (session.role == "admin") 2 else 0) 
+    }
     var buyDialogShown by remember { mutableStateOf(false) }
 
     // QR dialog popup state (Title, CodeText)
     var selectedQrDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     // Merchant stand controls
-    var mockCommercantName by remember { mutableStateOf("Vignoble Saint-Jean") }
+    val linkedEst = establishments.find { it.id == session.merchantId }
+    var mockCommercantName by remember(session.merchantId) { 
+        mutableStateOf(linkedEst?.name ?: "Vignoble Saint-Jean") 
+    }
     var scanResultLog by remember { mutableStateOf("") }
     
     // Merchant stats session memory
@@ -5094,82 +5294,131 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "LE PETIT CLAPAS",
-                    color = MontpellierOrangeAccent,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = "L'Espace Clapas & Estivales 🐾",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "LE PETIT CLAPAS",
+                            color = MontpellierOrangeAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp
+                        )
+                        Text(
+                            text = "Espace ${session.name} 🐾",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    IconButton(
+                        onClick = { viewModel.logout() },
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Déconnexion",
+                            tint = Color.White
+                        )
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // --- CUSTOM SEGMENTED PILLS TABS ---
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
+                if (session.role == "commercant" || session.role == "admin") {
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (activeSubTab == 0) MontpellierOrangePrimary else Color.Transparent,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .clickable { activeSubTab = 0 }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = null,
-                                tint = if (activeSubTab == 0) Color.White else MontpellierNavyLight,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Espace Utilisateur 🐾",
-                                color = if (activeSubTab == 0) Color.White else MontpellierNavyLight,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (activeSubTab == 0) MontpellierOrangePrimary else Color.Transparent,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { activeSubTab = 0 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = null,
+                                    tint = if (activeSubTab == 0) Color.White else MontpellierNavyLight,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Client 🐾",
+                                    color = if (activeSubTab == 0) Color.White else MontpellierNavyLight,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (activeSubTab == 1) MontpellierOrangePrimary else Color.Transparent,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .clickable { activeSubTab = 1 }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Storefront,
-                                contentDescription = null,
-                                tint = if (activeSubTab == 1) Color.White else MontpellierNavyLight,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Espace Commerçant 🍇",
-                                color = if (activeSubTab == 1) Color.White else MontpellierNavyLight,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (activeSubTab == 1) MontpellierOrangePrimary else Color.Transparent,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { activeSubTab = 1 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Storefront,
+                                    contentDescription = null,
+                                    tint = if (activeSubTab == 1) Color.White else MontpellierNavyLight,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Commerçant 🍇",
+                                    color = if (activeSubTab == 1) Color.White else MontpellierNavyLight,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        if (session.role == "admin") {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        if (activeSubTab == 2) MontpellierOrangePrimary else Color.Transparent,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { activeSubTab = 2 }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = null,
+                                        tint = if (activeSubTab == 2) Color.White else MontpellierNavyLight,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Admin 🔑",
+                                        color = if (activeSubTab == 2) Color.White else MontpellierNavyLight,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -5714,7 +5963,7 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
                     }
                 }
             }
-        } else {
+        } else if (activeSubTab == 1) {
             // ==========================================
             // 🍇 MERCHANT / COMMERÇANT SPACE
             // ==========================================
@@ -6374,6 +6623,150 @@ fun ProfileScreen(viewModel: GuidementViewModel) {
                                         textAlign = TextAlign.Center
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (activeSubTab == 2) {
+            // ==========================================
+            // 🔑 ADMINISTRATOR SPACE
+            // ==========================================
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 64.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MontpellierNavySurface),
+                        border = BorderStroke(1.2.dp, MontpellierOrangePrimary.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "CONSOLE D'ADMINISTRATION",
+                                        color = MontpellierOrangePrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Super-Admin : ${session.name} 👑",
+                                        color = MontpellierNavyDark,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(MontpellierOrangePrimary, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text("Actif ✓", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Divider(color = Color(0xFFE2E8F0))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Text(
+                                text = "En tant qu'administrateur de l'application, vous pouvez configurer l'ensemble des données, importer des fichiers cartographiques et créer de nouveaux comptes.",
+                                fontSize = 11.sp,
+                                color = MontpellierNavyLight,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                // Stats Dashboard Grid
+                item {
+                    Text(
+                        text = "📊 Indicateurs de l'Application",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MontpellierNavyDark
+                    )
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        listOf(
+                            Triple("Nombre de Commerces", "${establishments.size} établissements référencés", Icons.Default.Storefront),
+                            Triple("Défis Clapas en ligne", "${challenges.size} défis de Street-Art / Photo", Icons.Default.EmojiEvents),
+                            Triple("Badges Récompenses", "${badges.size} badges configurés", Icons.Default.WorkspacePremium),
+                            Triple("Coupons Cadeaux", "Gérés à distance via PHP", Icons.Default.ConfirmationNumber)
+                        ).forEach { (title, subtitle, icon) ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MontpellierOrangeLight, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(icon, null, tint = MontpellierOrangePrimary, modifier = Modifier.size(18.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MontpellierNavyDark)
+                                        Text(subtitle, fontSize = 10.sp, color = MontpellierNavyLight)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MontpellierNavyDark),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Lien vers la console Web 🖥️",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Pour gérer les commerçants, clients, et administrateurs dans différents onglets sécurisés, accédez au Back-Office de Montpellier :",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { 
+                                    // Open Web Back-Office Comptes
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MontpellierOrangePrimary),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Ouvrir Back-Office de Montpellier 🌐", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

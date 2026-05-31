@@ -51,6 +51,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span class="text-sm">Commerces & Carto</span>
             </a>
             
+            <a href="commerces_liste.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'commerces_liste.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
+                <span class="material-symbols-rounded">view_list</span>
+                <span class="text-sm">Liste & Édition de lot</span>
+            </a>
+            
             <a href="jeux.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'jeux.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                 <span class="material-symbols-rounded">explore</span>
                 <span class="text-sm">Configuration Jeux</span>
@@ -59,6 +64,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="coupons.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'coupons.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                 <span class="material-symbols-rounded">confirmation_number</span>
                 <span class="text-sm">Gestion des Coupons</span>
+            </a>
+
+            <a href="comptes.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'comptes.php' || $current_page == 'comptes.php?tab=clients' || $current_page == 'comptes.php?tab=commercants' || $current_page == 'comptes.php?tab=admins') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
+                <span class="material-symbols-rounded">manage_accounts</span>
+                <span class="text-sm">Gestion des Comptes</span>
             </a>
         </nav>
 

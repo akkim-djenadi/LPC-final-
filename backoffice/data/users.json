@@ -1,0 +1,26 @@
+[
+  {
+    "id": "usr_admin",
+    "name": "Administrateur Clapas",
+    "email": "admin@clapas.fr",
+    "password": "admin",
+    "role": "admin",
+    "merchant_id": null
+  },
+  {
+    "id": "usr_client",
+    "name": "Jean Estival",
+    "email": "client@clapas.fr",
+    "password": "client",
+    "role": "client",
+    "merchant_id": null
+  },
+  {
+    "id": "usr_aveyron",
+    "name": "Aux Produits de l'Aveyron",
+    "email": "key@clapas.fr",
+    "password": "aveyron123",
+    "role": "commercant",
+    "merchant_id": "way/52489711"
+  }
+]

@@ -1,11 +1,51 @@
 <?php
+// Enable explicit error reporting to immediately diagnose hosting-level issues on production
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+$commerces_file = 'data/commerces.geojson';
+$coupons_file = 'data/coupons.json';
+$jeux_file = 'data/jeux.json';
+
+// Import handler for GeoJSON Commerces data
+$import_feedback = '';
+$import_success = false;
+if (isset($_FILES['geojson_file'])) {
+    if ($_FILES['geojson_file']['error'] === UPLOAD_ERR_OK) {
+        $tmp_name = $_FILES['geojson_file']['tmp_name'];
+        $content = file_get_contents($tmp_name);
+        $decoded = json_decode($content, true);
+        
+        if ($decoded === null) {
+            $import_feedback = "Le fichier importé n'est pas un JSON valide.";
+        } elseif (!isset($decoded['type']) || $decoded['type'] !== 'FeatureCollection') {
+            $import_feedback = "Le fichier doit être une FeatureCollection GeoJSON valide (contenant la clé \"type\": \"FeatureCollection\").";
+        } else {
+            // Write to file cleanly
+            if (is_writable(dirname($commerces_file)) || (file_exists($commerces_file) && is_writable($commerces_file))) {
+                if (file_put_contents($commerces_file, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+                    $import_feedback = "Le fichier commerces.geojson a été importé et mis à jour avec succès !";
+                    $import_success = true;
+                } else {
+                    $import_feedback = "Une erreur est survenue lors de l'écriture physique du fichier GeoJSON.";
+                }
+            } else {
+                $import_feedback = "Le répertoire data/ ou commerces.geojson n'est pas modifiable ou accessible en écriture.";
+            }
+        }
+    } else {
+        $import_feedback = "Erreur de transfert du fichier (code d'erreur : " . $_FILES['geojson_file']['error'] . ")";
+    }
+}
+
 // Secure Dynamic Backup File Exporter
 if (isset($_GET['download'])) {
     $file_to_download = '';
     switch($_GET['download']) {
-        case 'commerces': $file_to_download = 'data/commerces.geojson'; break;
-        case 'coupons': $file_to_download = 'data/coupons.json'; break;
-        case 'jeux': $file_to_download = 'data/jeux.json'; break;
+        case 'commerces': $file_to_download = $commerces_file; break;
+        case 'coupons': $file_to_download = $coupons_file; break;
+        case 'jeux': $file_to_download = $jeux_file; break;
     }
     if (!empty($file_to_download) && file_exists($file_to_download)) {
         header('Content-Description: File Transfer');
@@ -26,14 +66,14 @@ $coupons_file = 'data/coupons.json';
 $jeux_file = 'data/jeux.json';
 
 $commerces_count = 0;
-$categories_count = [];
+$categories_count = array();
 if (file_exists($commerces_file)) {
     $geojson = json_decode(file_get_contents($commerces_file), true);
     if ($geojson && isset($geojson['features'])) {
         $commerces_count = count($geojson['features']);
         foreach ($geojson['features'] as $f) {
-            $cat = $f['properties']['category'] ?? 'Autre';
-            $categories_count[$cat] = ($categories_count[$cat] ?? 0) + 1;
+            $cat = isset($f['properties']['category']) ? $f['properties']['category'] : 'Autre';
+            $categories_count[$cat] = (isset($categories_count[$cat]) ? $categories_count[$cat] : 0) + 1;
         }
     }
 }
@@ -45,7 +85,7 @@ if (file_exists($coupons_file)) {
     if ($coupons) {
         $coupons_count = count($coupons);
         foreach ($coupons as $c) {
-            $total_quota += $c['quota'] ?? 0;
+            $total_quota += isset($c['quota']) ? $c['quota'] : 0;
         }
     }
 }
@@ -66,6 +106,21 @@ if (file_exists($jeux_file)) {
 
 include 'header.php';
 ?>
+
+<!-- Feedback Messages for GeoJSON Upload -->
+<?php if (!empty($import_feedback)): ?>
+    <div id="import_alert" class="mb-6 p-4 rounded-xl border <?php echo $import_success ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'; ?> flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="material-symbols-rounded <?php echo $import_success ? 'text-emerald-500' : 'text-rose-500'; ?>">
+                <?php echo $import_success ? 'check_circle' : 'error'; ?>
+            </span>
+            <span class="text-xs font-semibold"><?php echo htmlspecialchars($import_feedback); ?></span>
+        </div>
+        <button onclick="document.getElementById('import_alert').remove();" class="text-slate-400 hover:text-slate-600 transition">
+            <span class="material-symbols-rounded text-sm">close</span>
+        </button>
+    </div>
+<?php endif; ?>
 
 <!-- Home Greeting & Banner -->
 <div class="mb-8">
@@ -208,6 +263,43 @@ include 'header.php';
             <p class="text-xs text-slate-500 mb-4">
                 Puisque vos données sont stockées sous forme de fichiers plats, protégez votre travail en téléchargeant des sauvegardes régulières (.json et .geojson) de votre configuration.
             </p>
+
+            <!-- GeoJSON Import/Upload UI Section -->
+            <div class="mb-6 p-4 bg-orange-50/55 border border-orange-200 rounded-xl">
+                <span class="text-xs font-bold text-orange-600 block tracking-wider uppercase mb-1 flex items-center space-x-1">
+                    <span class="material-symbols-rounded text-sm">upload_file</span>
+                    <span>Importer / Remplacer commerces.geojson</span>
+                </span>
+                <p class="text-[11px] text-slate-500 mb-3">
+                    Sélectionnez un fichier GeoJSON valide de commerces depuis votre ordinateur pour remplacer intégralement la base de données active.
+                </p>
+                <form action="index.php" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div class="relative flex-1">
+                        <input type="file" name="geojson_file" accept=".geojson,.json" required 
+                               class="hidden" id="geojson_file_input" onchange="updateFileName(this)">
+                        <label for="geojson_file_input" 
+                               class="flex items-center justify-center space-x-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-400 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer shadow-sm transition">
+                            <span class="material-symbols-rounded text-sm text-slate-400">upload_file</span>
+                            <span id="file_label_txt">Choisir un fichier GeoJSON...</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center space-x-1">
+                        <span class="material-symbols-rounded text-sm">cloud_upload</span>
+                        <span>Importer</span>
+                    </button>
+                </form>
+            </div>
+
+            <script>
+            function updateFileName(input) {
+                const txtEl = document.getElementById('file_label_txt');
+                if (input.files && input.files[0]) {
+                    txtEl.textContent = input.files[0].name;
+                } else {
+                    txtEl.textContent = "Choisir un fichier GeoJSON...";
+                }
+            }
+            </script>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Backup actions -->
