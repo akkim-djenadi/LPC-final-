@@ -48,7 +48,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
             
             <a href="commerces.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'commerces.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                 <span class="material-symbols-rounded">storefront</span>
-                <span class="text-sm">Commerces & Carto</span>
+                <span class="text-sm">Commerces</span>
+            </a>
+            
+            <a href="donnees.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'donnees.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
+                <span class="material-symbols-rounded">database</span>
+                <span class="text-sm">Données</span>
             </a>
             
             <a href="commerces_liste.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'commerces_liste.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
