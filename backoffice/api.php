@@ -38,6 +38,25 @@ function read_json_data($file_path, $default = array()) {
     return $default;
 }
 
+// Automatically resolve and inject correct Raw GitHub content images dynamically on-the-fly
+function resolve_commerces_images($payload) {
+    if (isset($payload['features']) && is_array($payload['features'])) {
+        foreach ($payload['features'] as $k => $f) {
+            if (isset($f['properties'])) {
+                $img_name = $f['properties']['github_image'] ?? '';
+                if (empty($img_name)) {
+                    $slug = mb_strtolower($f['properties']['name'] ?? '', 'UTF-8');
+                    $slug = preg_replace('/[\s\'’\-–—,.\/\\\]+/', '_', $slug);
+                    $slug = trim($slug, '_');
+                    $img_name = $slug . '.jpg';
+                }
+                $payload['features'][$k]['properties']['image_url'] = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/" . urlencode($img_name);
+            }
+        }
+    }
+    return $payload;
+}
+
 switch($task) {
     case 'register':
         $users_file = 'data/users.json';
@@ -217,6 +236,7 @@ switch($task) {
             "type" => "FeatureCollection",
             "features" => array()
         ));
+        $payload = resolve_commerces_images($payload);
         echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         break;
         
@@ -236,6 +256,7 @@ switch($task) {
             "type" => "FeatureCollection",
             "features" => array()
         ));
+        $commerces = resolve_commerces_images($commerces);
         $coupons = read_json_data($coupons_file, array());
         $jeux = read_json_data($jeux_file, array());
         

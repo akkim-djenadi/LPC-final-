@@ -4,6 +4,32 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Helper function to extract a Point array [lng, lat] from any GeoJSON geometry type
+if (!function_exists('get_point_coordinates')) {
+    function get_point_coordinates($geometry) {
+        $coords = isset($geometry['coordinates']) ? $geometry['coordinates'] : null;
+        if (empty($coords)) {
+            return [3.8794, 43.6085];
+        }
+        
+        // Helper function to recursively find the first array of size 2 containing numeric values
+        $find_first_point = function($arr) use (&$find_first_point) {
+            if (!is_array($arr)) return null;
+            if (count($arr) >= 2 && is_numeric($arr[0]) && is_numeric($arr[1])) {
+                return [$arr[0], $arr[1]];
+            }
+            foreach ($arr as $el) {
+                $p = $find_first_point($el);
+                if ($p !== null) return $p;
+            }
+            return null;
+        };
+        
+        $p = $find_first_point($coords);
+        return ($p !== null) ? $p : [3.8794, 43.6085];
+    }
+}
+
 $commerces_file = 'data/commerces.geojson';
 $coupons_file = 'data/coupons.json';
 
@@ -44,7 +70,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['geojson_file'])) {
 if (file_exists($commerces_file)) {
     $geojson = json_decode(file_get_contents($commerces_file), true);
     if ($geojson && isset($geojson['features'])) {
-        $commerces = $geojson['features'];
+        $features = $geojson['features'];
+        $modified = false;
+        foreach ($features as $idx => &$feat) {
+            if (!isset($feat['properties'])) {
+                $feat['properties'] = array();
+                $modified = true;
+            }
+            if (!isset($feat['properties']['id']) || empty($feat['properties']['id'])) {
+                if (isset($feat['id']) && !empty($feat['id'])) {
+                    $feat['properties']['id'] = $feat['id'];
+                } else {
+                    $clean_name = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $feat['properties']['name'] ?? 'com'));
+                    $feat['properties']['id'] = 'mer_' . (empty($clean_name) ? 'com' : $clean_name) . '_' . ($idx + 1);
+                }
+                $modified = true;
+            }
+        }
+        unset($feat);
+        $commerces = $features;
+        if ($modified) {
+            $geojson['features'] = $features;
+            file_put_contents($commerces_file, json_encode($geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
     }
 }
 
@@ -253,6 +301,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+
+    // 3. SMART AUTOMATIC CATEGORIZATION HANDLER
+    if (isset($_POST['action']) && $_POST['action'] === 'auto_categorize') {
+        $overwrite = isset($_POST['overwrite']) && $_POST['overwrite'] === '1';
+        $updated_count = 0;
+        
+        // Define smart classification function
+        $classify = function($properties) {
+            $cat = "Shopping"; // fallback
+            $subcat = "";
+            
+            $amenity = strtolower($properties['amenity'] ?? '');
+            $shop = strtolower($properties['shop'] ?? '');
+            $tourism = strtolower($properties['tourism'] ?? '');
+            $leisure = strtolower($properties['leisure'] ?? '');
+            $cuisine = strtolower($properties['cuisine'] ?? '');
+            $sport = strtolower($properties['sport'] ?? '');
+            $craft = strtolower($properties['craft'] ?? '');
+            
+            // Restauration
+            if (in_array($amenity, ['restaurant', 'fast_food', 'food_court', 'cafe']) ||
+                in_array($shop, ['bakery', 'butcher', 'dairy', 'pastry', 'confectionery'])) {
+                $cat = "Restauration";
+                if ($shop === 'bakery') $subcat = "Boulangerie 🥖";
+                elseif ($shop === 'butcher') $subcat = "Boucherie 🥩";
+                elseif ($shop === 'pastry') $subcat = "Pâtisserie 🍰";
+                elseif ($shop === 'confectionery') $subcat = "Chocolats & Confiserie 🍫";
+                elseif ($amenity === 'cafe') $subcat = "Café & Brunch ☕";
+                elseif ($amenity === 'fast_food') {
+                    $subcat = !empty($cuisine) ? "Restauration rapide (" . ucfirst($cuisine) . ") 🍔" : "Restauration rapide 🍟";
+                } elseif ($amenity === 'restaurant') {
+                    $subcat = !empty($cuisine) ? "Restaurant (" . ucfirst($cuisine) . ") 🍽️" : "Restaurant 🍽️";
+                }
+            }
+            // Cave & Bar
+            elseif (in_array($amenity, ['bar', 'pub', 'biergarten']) ||
+                    in_array($shop, ['alcohol', 'wine', 'beer', 'beverages'])) {
+                $cat = "Cave & Bar";
+                if ($amenity === 'pub') $subcat = "Pub traditionnel 🍺";
+                elseif ($amenity === 'bar') $subcat = "Bar & Cocktails 🍹";
+                elseif ($shop === 'wine' || $shop === 'alcohol') $subcat = "Cave à vins & spiritueux 🍷";
+                else $subcat = "Bar & Boissons 🥂";
+            }
+            // Culture
+            elseif (in_array($shop, ['books', 'music', 'musical_instrument', 'art']) ||
+                    in_array($amenity, ['cinema', 'theatre', 'arts_centre', 'museum', 'library', 'studio'])) {
+                $cat = "Culture";
+                if ($shop === 'books') $subcat = "Librairie & Livres 📚";
+                elseif ($shop === 'musical_instrument') $subcat = "Instruments de musique 🎸";
+                elseif ($shop === 'art' || $amenity === 'arts_centre') $subcat = "Galerie d'Art 🎨";
+                elseif ($shop === 'music') $subcat = "Disquaire & Musique 📀";
+                else $subcat = "Arts & Culture 🎭";
+            }
+            // Hôtels / Logement
+            elseif (in_array($tourism, ['hotel', 'hostel', 'motel', 'guest_house', 'apartment'])) {
+                $cat = "Hôtels / Logement";
+                $subcat = "Hébergement (" . ucfirst($tourism) . ") 🏨";
+            }
+            // Loisirs
+            elseif (!empty($leisure) || 
+                    in_array($shop, ['games', 'video', 'tobacco', 'bicycle']) ||
+                    in_array($amenity, ['internet_cafe', 'escape_game']) ||
+                    !empty($sport)) {
+                $cat = "Loisirs";
+                if ($shop === 'games') $subcat = "Jeux & Jouets 🎲";
+                elseif ($shop === 'bicycle') $subcat = "Vélos & Randonnée 🚲";
+                elseif ($shop === 'tobacco') $subcat = "Tabac, Presse & Kiosque 🚬";
+                else $subcat = "Loisirs & Divertissements 🎮";
+            }
+            // Shopping Fallback
+            elseif (!empty($shop) || !empty($craft)) {
+                $cat = "Shopping";
+                if ($shop === 'convenience' || $shop === 'supermarket' || $shop === 'grocery') {
+                    $subcat = "Épicerie & Alimentation 🛒";
+                } elseif ($shop === 'clothes') {
+                    $subcat = "Prêt-à-porter 👕";
+                } elseif ($shop === 'shoes') {
+                    $subcat = "Chaussures & Accessoires 👟";
+                } elseif ($shop === 'jewelry') {
+                    $subcat = "Bijouterie & Joaillerie 💎";
+                } elseif ($shop === 'beauty' || $shop === 'cosmetics') {
+                    $subcat = "Esthétique, Beauté & Cosmétiques 💅";
+                } elseif ($shop === 'toys') {
+                    $subcat = "Jeux & Jouets 🧸";
+                } elseif ($shop === 'florist') {
+                    $subcat = "Fleuriste 🌸";
+                } elseif ($shop === 'dry_cleaning' || $shop === 'laundry') {
+                    $subcat = "Pressing & Laverie 🧺";
+                } elseif ($craft === 'locksmith') {
+                    $subcat = "Serrurerie & Dépannage 🔑";
+                } elseif ($craft === 'tailor' || $craft === 'sewing') {
+                    $subcat = "Couture & Retouches 🧵";
+                } else {
+                    $subcat = "Boutique (" . str_replace('_', ' ', $shop ? $shop : $craft) . ") 🛍️";
+                }
+            }
+            
+            return ['cat' => $cat, 'subcat' => $subcat];
+        };
+        
+        foreach ($commerces as $key => $feature) {
+            $props = $feature['properties'] ?? [];
+            $existing_cat = $props['category'] ?? '';
+            
+            // Check if we should categorize this one
+            if ($overwrite || empty($existing_cat) || $existing_cat === 'Autre') {
+                $result = $classify($props);
+                $commerces[$key]['properties']['category'] = $result['cat'];
+                // Only overwrite subcategory if it's currently empty
+                if (empty($props['subcategory'] ?? '')) {
+                    $commerces[$key]['properties']['subcategory'] = $result['subcat'];
+                }
+                $updated_count++;
+            }
+        }
+        
+        if ($updated_count > 0) {
+            $new_geojson = [
+                "type" => "FeatureCollection",
+                "features" => $commerces
+            ];
+            file_put_contents($commerces_file, json_encode($new_geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $feedback_msg = "⚡ Succès ! Catégorisation intelligente effectuée pour $updated_count commerces.";
+            $feedback_type = "success";
+        } else {
+            $feedback_msg = "ℹ️ Aucun commerce n'avait besoin d'une suggestion automatique de catégorie.";
+            $feedback_type = "success";
+        }
+    }
     
     // Reaload mutated arrays for safe viewing
     if (file_exists($commerces_file)) {
@@ -419,6 +596,38 @@ function updateDirectFileName(input) {
 }
 </script>
 
+<!-- PART 1.6: SMART AUTO-CATEGORIZATION ASSISTANT -->
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-8">
+    <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('smart_autocat_drawer').classList.toggle('hidden');">
+        <h4 class="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center space-x-2">
+            <span class="material-symbols-rounded text-orange-500">magic_button</span>
+            <span>Assistant de Catégorisation Intelligente (Recommandé)</span>
+        </h4>
+        <span class="text-xs text-orange-500 font-bold hover:underline flex items-center space-x-1 select-none">
+            <span>Déplier / Replier</span>
+            <span class="material-symbols-rounded text-sm">unfold_more</span>
+        </span>
+    </div>
+    <div id="smart_autocat_drawer" class="mt-4 pt-4 border-t border-slate-100">
+        <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+            Cet outil analyse les attributs natifs OpenStreetMap de votre GeoJSON (les clés comme <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-slate-700">shop</code>, <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-slate-700">amenity</code>, <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-slate-700">tourism</code> ou <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-slate-700">cuisine</code>) et configure automatiquement la catégorie principale de l'application (🍔 Restauration, 🍷 Cave & Bar, 🛍️ Shopping, etc.) ainsi qu'une description de sous-catégorie appropriée.
+        </p>
+        <form action="commerces_liste.php" method="POST" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 p-4 border border-slate-200 rounded-xl">
+            <input type="hidden" name="action" value="auto_categorize">
+            <div class="flex items-center space-x-3">
+                <input type="checkbox" name="overwrite" value="1" id="overwrite_autocat" class="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-4 w-4">
+                <label for="overwrite_autocat" class="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                    Écraser les catégories existantes (Forcer une ré-évaluation complète)
+                </label>
+            </div>
+            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center space-x-2">
+                <span class="material-symbols-rounded text-sm">auto_awesome</span>
+                <span>Lancer la Catégorisation Automatique</span>
+            </button>
+        </form>
+    </div>
+</div>
+
 <!-- PART 2: THE BUSINESS LIST TABLE -->
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
     
@@ -461,10 +670,10 @@ function updateDirectFileName(input) {
                     <?php foreach ($commerces as $feature):
                         $props = $feature['properties'];
                         $id = $props['id'] ?? '';
-                        $coords = $feature['geometry']['coordinates'] ?? [3.8794, 43.6085];
+                        $coords = get_point_coordinates($feature['geometry'] ?? []);
                         $img_name = $props['github_image'] ?? '';
                         $img_url = !empty($img_name) 
-                            ? "https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/" . urlencode($img_name)
+                            ? "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/" . urlencode($img_name)
                             : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&q=80";
                         
                         $has_coupon = isset($merchant_coupons[$id]);
@@ -708,15 +917,15 @@ function toggleSelectionHighlighter(checkbox) {
 // Live client-side filtering by name / categories
 function filterCommercesTable() {
     const query = document.getElementById('local_search_input').value.toLowerCase().trim();
-    const catFilter = document.getElementById('local_category_filter').value;
+    const catFilter = document.getElementById('local_category_filter').value.toLowerCase().trim();
     const rows = document.querySelectorAll('.commerce-row');
     
     rows.forEach(row => {
-        const name = row.getAttribute('data-name');
-        const category = row.getAttribute('data-category');
+        const name = (row.getAttribute('data-name') || '').toLowerCase().trim();
+        const category = (row.getAttribute('data-category') || '').toLowerCase().trim();
         
         const matchSearch = (query === '' || name.includes(query));
-        const matchCategory = (catFilter === 'all' || category === catFilter);
+        const matchCategory = (catFilter === 'all' || category === catFilter || category.includes(catFilter));
         
         // Find expanded row as well
         const subRowId = row.nextElementSibling ? row.nextElementSibling.id : '';

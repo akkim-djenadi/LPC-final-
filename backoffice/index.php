@@ -22,10 +22,32 @@ if (isset($_FILES['geojson_file'])) {
         } elseif (!isset($decoded['type']) || $decoded['type'] !== 'FeatureCollection') {
             $import_feedback = "Le fichier doit être une FeatureCollection GeoJSON valide (contenant la clé \"type\": \"FeatureCollection\").";
         } else {
+            // Ensure features list is present
+            if (!isset($decoded['features'])) {
+                $decoded['features'] = [];
+            }
+            // Sanitize and assign IDs to every imported feature
+            $features = $decoded['features'];
+            foreach ($features as $idx => &$feat) {
+                if (!isset($feat['properties'])) {
+                    $feat['properties'] = array();
+                }
+                if (!isset($feat['properties']['id']) || empty($feat['properties']['id'])) {
+                    if (isset($feat['id']) && !empty($feat['id'])) {
+                        $feat['properties']['id'] = $feat['id'];
+                    } else {
+                        $clean_name = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $feat['properties']['name'] ?? 'com'));
+                        $feat['properties']['id'] = 'mer_' . (empty($clean_name) ? 'com' : $clean_name) . '_' . ($idx + 1);
+                    }
+                }
+            }
+            unset($feat);
+            $decoded['features'] = $features;
+            
             // Write to file cleanly
             if (is_writable(dirname($commerces_file)) || (file_exists($commerces_file) && is_writable($commerces_file))) {
                 if (file_put_contents($commerces_file, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-                    $import_feedback = "Le fichier commerces.geojson a été importé et mis à jour avec succès !";
+                    $import_feedback = "Le fichier commerces.geojson a été importé, sécurisé avec des identifiants valides et mis à jour avec succès !";
                     $import_success = true;
                 } else {
                     $import_feedback = "Une erreur est survenue lors de l'écriture physique du fichier GeoJSON.";
@@ -233,11 +255,11 @@ include 'header.php';
                         Comment ça fonctionne ?
                     </p>
                     <ol class="list-decimal list-inside space-y-1">
-                        <li>Déposez vos images (ex: <code class="bg-slate-200 px-1 rounded font-semibold text-slate-900">vignoble_st_jean.jpg</code>) directement dans votre dossier GitHub <a href="https://github.com/akkim-djenadi/le-petit-clapas-/tree/main/images_commerces" target="_blank" class="text-blue-500 hover:underline">images_commerces</a>.</li>
+                        <li>Déposez vos images (ex: <code class="bg-slate-200 px-1 rounded font-semibold text-slate-900">vignoble_st_jean.jpg</code>) directement dans votre dossier GitHub <a href="https://github.com/akkim-djenadi/LPC-final-/tree/main/images_commerces" target="_blank" class="text-blue-500 hover:underline">images_commerces</a>.</li>
                         <li>Renseignez le nom exact de ce fichier dans la fiche établissement correspondante dans ce back-office.</li>
                         <li>Le serveur génère le lien brut CDN GitHub direct :
                             <br>
-                            <span class="text-[10px]/snug font-mono text-emerald-600 block mt-1 break-all">https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/vignoble_st_jean.jpg</span>
+                            <span class="text-[10px]/snug font-mono text-emerald-600 block mt-1 break-all">https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/vignoble_st_jean.jpg</span>
                         </li>
                     </ol>
                 </div>

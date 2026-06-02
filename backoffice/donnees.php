@@ -30,6 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $decoded['features'] = [];
                 }
                 
+                // Sanitize and assign IDs to every imported feature
+                $features = $decoded['features'];
+                foreach ($features as $idx => &$feat) {
+                    if (!isset($feat['properties'])) {
+                        $feat['properties'] = array();
+                    }
+                    if (!isset($feat['properties']['id']) || empty($feat['properties']['id'])) {
+                        if (isset($feat['id']) && !empty($feat['id'])) {
+                            $feat['properties']['id'] = $feat['id'];
+                        } else {
+                            $clean_name = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $feat['properties']['name'] ?? 'com'));
+                            $feat['properties']['id'] = 'mer_' . (empty($clean_name) ? 'com' : $clean_name) . '_' . ($idx + 1);
+                        }
+                    }
+                }
+                unset($feat);
+                $decoded['features'] = $features;
+                
                 if (file_put_contents($commerces_file, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
                     $features_count = count($decoded['features']);
                     $feedback_msg = "✅ Base de données mise à jour avec succès ! $features_count commerces ont été importés.";

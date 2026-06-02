@@ -18,7 +18,8 @@ data class Establishment(
     val imageResName: String, // Vector representation code
     val isFavorite: Boolean = false,
     val phoneNumber: String = "+33 4 67 00 00 00",
-    val hours: String = "12:00 - 15:00, 19:00 - 23:00"
+    val hours: String = "12:00 - 15:00, 19:00 - 23:00",
+    val imageUrl: String = ""
 )
 
 @Entity(tableName = "reviews")

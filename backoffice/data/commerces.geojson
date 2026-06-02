@@ -1,69 +1,363 @@
 {
   "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-05-15T14:22:15Z",
   "features": [
     {
       "type": "Feature",
       "properties": {
-        "id": "mer_st_jean",
-        "name": "Vignoble Saint-Jean",
-        "category": "Cave & Bar",
-        "subcategory": "Bar à Vins / Tapas",
-        "description": "Sélection prestigieuse de crus du Pic Saint-Loup et Grés de Montpellier.",
-        "github_image": "vignoble_st_jean.jpg",
-        "phone": "04 67 00 00 01"
+        "@id": "way/52489711",
+        "name": "Aux Produits de l'Aveyron",
+        "opening_hours": "Mo-Sa 08:00-19:30",
+        "phone": "+33 4 67 72 66 21",
+        "ref:FR:SIRET": "52767914600011",
+        "shop": "butcher",
+        "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+        "survey:date": "2025-05-13",
+        "website": "https://fr-fr.facebook.com/Lorzieres/",
+        "addr:street": "2 Rue de la Fauvette, 34000 Montpellier",
+        "image_url": "images_commerces/aux_produits_de_l_aveyron.jpg"
       },
       "geometry": {
-        "type": "Point",
-        "coordinates": [3.8794, 43.6085]
-      }
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8842996,
+              43.6149661
+            ],
+            [
+              3.8842372,
+              43.614991
+            ],
+            [
+              3.8842168,
+              43.614985
+            ],
+            [
+              3.8842046,
+              43.6149678
+            ],
+            [
+              3.884281,
+              43.6149407
+            ],
+            [
+              3.8842996,
+              43.6149661
+            ]
+          ]
+        ]
+      },
+      "id": "way/52489711"
     },
     {
       "type": "Feature",
       "properties": {
-        "id": "mer_antigone",
-        "name": "Le Resto d'Antigone",
-        "category": "Restauration",
-        "subcategory": "Cuisine Locale",
-        "description": "Plats typiques montpelliérains et terrasses ensoleillées.",
-        "github_image": "resto_antigone.jpg",
-        "phone": "04 67 00 00 02"
+        "@id": "way/52490720",
+        "building": "yes",
+        "contact:facebook": "https://www.facebook.com/boulangerie.patisserie.frezal/",
+        "height": "8",
+        "name": "Boulangerie Pâtisserie Frézal",
+        "opening_hours": "Tu-Sa 07:00-13:00,16:00-19:00; Su 07:00-13:00",
+        "phone": "+33 9 54 54 90 06",
+        "ref:FR:SIRET": "81330449000010",
+        "shop": "bakery",
+        "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+        "website": "https://boulangeri-patisserie-frezal.jimdofree.com/",
+        "addr:street": "158 Av. de Saint-Maur, 34000 Montpellier",
+        "image_url": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=Ab43m-uLPfRNZcgWT8ZmYS4TmN8uqUme7QrmMwhNqcQcC8MLnB9vozJRcRliHKggdUshTaTUYe1lkpZWaD7TADI01FmkhFCPn3m65X7fv8oge53XMe7lP0XTLE8z4dLJEnEtK6zLrRtszbhc7btgbbZTElOXn6Uf3FKNm9UZoA8uZPMeLDA26aOVVEe9vlOvGkaUhFPnEr9wKNCrABec4s5Ubk4iIernDrpDWvw3Q5nizouD-ov-YpQ56sB_0dSaHE9VItAM3JEmXDRtsw1lC7gAZ34zK4iw3eGuQ-kKsS276gV1U8WHgphwIw4B-Snfd2k8OfFzaMnL8FrEICSAIrONC0StToOQ3ryadjel0sPWEwhgVYrFk7SpZQbeb95S7IsqkB2tfdyEjnp10BPBkFkTEcwoOGfD1uqO6BVbxUg5kY-5BcqNDXc7SCsRHlUajnjf&key=AIzaSyBmKhopo_G4M52nMn-3a96lKuHeim5NfSw"
       },
       "geometry": {
-        "type": "Point",
-        "coordinates": [3.8890, 43.6075]
-      }
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8850464,
+              43.6155105
+            ],
+            [
+              3.8850135,
+              43.6154783
+            ],
+            [
+              3.8849763,
+              43.6154442
+            ],
+            [
+              3.8850825,
+              43.6153864
+            ],
+            [
+              3.8850706,
+              43.6153739
+            ],
+            [
+              3.8850654,
+              43.6153768
+            ],
+            [
+              3.8850332,
+              43.6153752
+            ],
+            [
+              3.8849983,
+              43.6153343
+            ],
+            [
+              3.885092,
+              43.6152819
+            ],
+            [
+              3.8851482,
+              43.6153383
+            ],
+            [
+              3.8852109,
+              43.6154013
+            ],
+            [
+              3.8852233,
+              43.6154137
+            ],
+            [
+              3.8851325,
+              43.6154634
+            ],
+            [
+              3.8850464,
+              43.6155105
+            ]
+          ]
+        ]
+      },
+      "id": "way/52490720"
     },
     {
       "type": "Feature",
       "properties": {
-        "id": "mer_peyrou",
-        "name": "Café de l'Arc",
-        "category": "Restauration",
-        "subcategory": "Café / Brasserie",
-        "description": "Idéalement situé face à l'Arc de Triomphe du Peyrou.",
-        "github_image": "cafe_de_l_arc.jpg",
-        "phone": "04 67 00 00 03"
+        "@id": "way/75043243",
+        "addr:city": "Montpellier",
+        "addr:housenumber": "480",
+        "addr:postcode": "34000",
+        "addr:street": "480 Av. des États du Languedoc, 34000 Montpellier",
+        "amenity": "restaurant",
+        "building": "yes",
+        "contact:facebook": "https://fr-fr.facebook.com/maisondesechanges/",
+        "height": "4",
+        "name": "Maison des Échanges et du Commerce",
+        "phone": "+33 434 35 50 45",
+        "ref:FR:SIRET": "81414488700019",
+        "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+        "image_url": "images_commerces/maison_des_échanges_et_du_commerce.jpg"
       },
       "geometry": {
-        "type": "Point",
-        "coordinates": [3.8715, 43.6111]
-      }
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8866711,
+              43.6062163
+            ],
+            [
+              3.8866,
+              43.6060852
+            ],
+            [
+              3.8867146,
+              43.6060525
+            ],
+            [
+              3.8867893,
+              43.6061842
+            ],
+            [
+              3.8867304,
+              43.6062002
+            ],
+            [
+              3.8866711,
+              43.6062163
+            ]
+          ]
+        ]
+      },
+      "id": "way/75043243"
     },
     {
       "type": "Feature",
       "properties": {
-        "id": "mer_beaux_arts",
-        "name": "Artisan Chocolatier Clapas",
-        "category": "Shopping",
-        "subcategory": "Chocolaterie / Confiserie",
-        "description": "Spécialités de chocolats artisanaux et macarons maison.",
-        "github_image": "chocolat_clapas.jpg",
-        "phone": "04 67 00 00 04"
+        "@id": "way/75130633",
+        "building": "yes",
+        "height": "4",
+        "name": "Boucherie Antigone",
+        "shop": "butcher",
+        "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+        "addr:street": "287 Av. des États du Languedoc, 34000 Montpellier",
+        "image_url": "images_commerces/boucherie_antigone.jpg"
       },
       "geometry": {
-        "type": "Point",
-        "coordinates": [3.8820, 43.6150]
-      }
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8864784,
+              43.6072361
+            ],
+            [
+              3.8864553,
+              43.6071895
+            ],
+            [
+              3.8865018,
+              43.6071776
+            ],
+            [
+              3.8865069,
+              43.6071585
+            ],
+            [
+              3.886561,
+              43.6071673
+            ],
+            [
+              3.8865797,
+              43.6071579
+            ],
+            [
+              3.8866019,
+              43.6072045
+            ],
+            [
+              3.8864784,
+              43.6072361
+            ]
+          ]
+        ]
+      },
+      "id": "way/75130633"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/75247203",
+        "amenity": "restaurant",
+        "building": "yes",
+        "height": "4",
+        "name": "Self du Lycée Joffre",
+        "source": "cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010",
+        "addr:street": "150 All. de la Citadelle, 34000 Montpellier",
+        "image_url": "images_commerces/self_du_lycée_joffre.jpg"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8851669,
+              43.6127068
+            ],
+            [
+              3.8848655,
+              43.6126808
+            ],
+            [
+              3.8848647,
+              43.6126837
+            ],
+            [
+              3.8847864,
+              43.6126773
+            ],
+            [
+              3.8847971,
+              43.6126108
+            ],
+            [
+              3.8842493,
+              43.6125671
+            ],
+            [
+              3.8842685,
+              43.6124664
+            ],
+            [
+              3.8842934,
+              43.6123288
+            ],
+            [
+              3.8844068,
+              43.6123389
+            ],
+            [
+              3.884421,
+              43.6122648
+            ],
+            [
+              3.8847215,
+              43.6122891
+            ],
+            [
+              3.8847082,
+              43.6123643
+            ],
+            [
+              3.8848512,
+              43.6123765
+            ],
+            [
+              3.884852,
+              43.612369
+            ],
+            [
+              3.884897,
+              43.6123727
+            ],
+            [
+              3.8849012,
+              43.6123513
+            ],
+            [
+              3.8850595,
+              43.6123651
+            ],
+            [
+              3.8850587,
+              43.6123743
+            ],
+            [
+              3.8850939,
+              43.6123787
+            ],
+            [
+              3.885085,
+              43.6124463
+            ],
+            [
+              3.8852334,
+              43.6124608
+            ],
+            [
+              3.8852095,
+              43.61261
+            ],
+            [
+              3.8851826,
+              43.6126102
+            ],
+            [
+              3.8851776,
+              43.6126374
+            ],
+            [
+              3.8851669,
+              43.6127068
+            ]
+          ]
+        ]
+      },
+      "id": "way/75247203"
     }
   ]
 }

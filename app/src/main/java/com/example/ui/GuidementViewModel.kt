@@ -554,6 +554,113 @@ class GuidementViewModel(private val repository: Repository, private val context
     init {
         viewModelScope.launch {
             repository.initializeDatabaseIfEmpty()
+            syncWithServer()
+        }
+    }
+
+    fun syncWithServer() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val url = "$apiBaseUrl?task=commerces"
+                    val request = Request.Builder().url(url).build()
+                    client.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) {
+                            val resData = response.body?.string() ?: ""
+                            val json = JSONObject(resData)
+                            val features = json.optJSONArray("features")
+                            if (features != null && features.length() > 0) {
+                                // Get currently saved establishments to retain favorites
+                                val existingList = repository.allEstablishments.firstOrNull() ?: emptyList()
+                                val favoriteIds = existingList.filter { it.isFavorite }.map { it.id }.toSet()
+                                
+                                val establishmentsToSave = mutableListOf<Establishment>()
+                                for (i in 0 until features.length()) {
+                                    val feature = features.getJSONObject(i)
+                                    val properties = feature.optJSONObject("properties") ?: JSONObject()
+                                    val geometry = feature.optJSONObject("geometry") ?: JSONObject()
+                                    val coordinates = geometry.optJSONArray("coordinates")
+                                    
+                                    val id = properties.optString("id", "")
+                                    if (id.isEmpty()) continue
+                                    
+                                    val name = properties.optString("name", "Commerce")
+                                    val categoryStr = properties.optString("category", "Shopping")
+                                    
+                                    // Map Category based on application rules: RESTAURANT, BAR, CAFE
+                                    val appCategory = when (categoryStr) {
+                                        "Restauration" -> "RESTAURANT"
+                                        "Cave & Bar" -> "BAR"
+                                        else -> "CAFE" // Shopping, Loisirs, Culture, Hotels, Custom
+                                    }
+                                    
+                                    val subcat = properties.optString("subcategory", "")
+                                    val description = properties.optString("description", "")
+                                    val phone = properties.optString("phone", "+33 4 67 00 00 00")
+                                    
+                                    // Address resolution
+                                    val street = properties.optString("addr:street", "")
+                                    val housenumber = properties.optString("addr:housenumber", "")
+                                    val address = if (street.isEmpty()) "" else "$street $housenumber"
+                                    val cleanAddress = if (address.trim().isEmpty()) "Montpellier, France" else address.trim() + ", Montpellier"
+                                    
+                                    // Neighborhood logic (quartier) based on coordinate bounds
+                                    var quartier = "Alentours"
+                                    val latVal = if (coordinates != null && coordinates.length() >= 2) coordinates.getDouble(1) else 43.6107
+                                    val lngVal = if (coordinates != null && coordinates.length() >= 2) coordinates.getDouble(0) else 3.8767
+                                    
+                                    if (latVal in 43.606..43.615 && lngVal in 3.870..3.882) {
+                                        quartier = "Écusson"
+                                    } else if (latVal > 43.615 && lngVal > 3.875) {
+                                        quartier = "Beaux-Arts"
+                                    } else if (latVal < 43.605 && lngVal > 3.885) {
+                                        quartier = "Port Marianne"
+                                    } else if (latVal in 43.601..43.610 && lngVal in 3.881..3.899) {
+                                        quartier = "Antigone"
+                                    }
+                                    
+                                    // Ambiance based on subcat or category
+                                    val ambiance = when {
+                                        categoryStr == "Cave & Bar" -> "Festif"
+                                        subcat.contains("Brunch", ignoreCase = true) || subcat.contains("Café", ignoreCase = true) -> "Détendu"
+                                        subcat.contains("Chic", ignoreCase = true) || subcat.contains("Galerie", ignoreCase = true) -> "Chic"
+                                        else -> "Étudiant"
+                                    }
+                                    
+                                    // Image URL resolution from geojson
+                                    val imageUrl = properties.optString("image_url", "")
+                                    
+                                    establishmentsToSave.add(
+                                        Establishment(
+                                            id = id,
+                                            name = name,
+                                            description = if (description.isEmpty()) "Commerce convivial de Montpellier d'importance locale ($subcat)." else description,
+                                            category = appCategory,
+                                            rating = (42..49).random().toFloat() / 10f, // 4.2 to 4.9 randomized rating
+                                            verdict = "L'avis du Petit Clapas : $name est une excellente adresse locale caractérisée par $subcat ! On vous recommande d'y faire un tour !",
+                                            address = cleanAddress,
+                                            quartier = quartier,
+                                            ambiance = ambiance,
+                                            isMagnonLabel = (i % 8 == 0), // 1 in 8 is Magnon labeled
+                                            imageResName = "default",
+                                            isFavorite = favoriteIds.contains(id),
+                                            phoneNumber = if (phone.isEmpty()) "Pas de numéro" else phone,
+                                            hours = "09:00 - 19:00",
+                                            imageUrl = imageUrl
+                                        )
+                                    )
+                                }
+                                
+                                if (establishmentsToSave.isNotEmpty()) {
+                                    repository.insertEstablishments(establishmentsToSave)
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 

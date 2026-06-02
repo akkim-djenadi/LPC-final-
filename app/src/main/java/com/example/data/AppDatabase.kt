@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
         UserWallet::class, 
         TokenTransaction::class
     ], 
-    version = 1, 
+    version = 2, 
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

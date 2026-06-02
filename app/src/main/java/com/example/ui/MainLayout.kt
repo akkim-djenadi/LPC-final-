@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -336,7 +338,7 @@ fun HomeScreen(
     val wallet by viewModel.wallet.collectAsStateWithLifecycle()
 
     val quartiers = listOf("Écusson", "Port Marianne", "Antigone", "Beaux-Arts")
-    val categories = listOf("RESTAURANT" to "Resto", "BAR" to "Bars", "CAFE" to "Brunch & Cafés")
+    val categories = listOf("RESTAURANT" to "Resto", "BAR" to "Bars", "CAFE" to "Commerces & Cafés")
     val ambiances = listOf("Détendu" to "🍃 Détendu", "Chic" to "💎 Chic", "Festif" to "🎉 Festif", "Étudiant" to "🎓 Étudiant")
 
     var simulatedAmbiance by remember { mutableStateOf("sunset") } // "day", "sunset", "night"
@@ -850,95 +852,127 @@ fun EstablishmentCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(130.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = when (establishment.category) {
-                                "RESTAURANT" -> listOf(Color(0xFFE29578), Color(0xFFE76F51))
-                                "BAR" -> listOf(Color(0xFF2E86AB), Color(0xFF1B4965))
-                                else -> listOf(Color(0xFFF4A261), Color(0xFFE76F51))
-                            }
-                        )
-                    )
-                    .padding(12.dp)
             ) {
-                // Category pill and Magnon label
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = when (establishment.category) {
-                                    "RESTAURANT" -> "🍔 Resto"
-                                    "BAR" -> "🍸 Bar Pub"
-                                    else -> "☕ Café Brunch"
-                                },
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
+                if (!establishment.imageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(establishment.imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = establishment.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    // Gradient overlay to ensure text stands out beautifully
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Black.copy(alpha = 0.1f), Color.Black.copy(alpha = 0.5f))
+                                )
                             )
-                        }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = when (establishment.category) {
+                                        "RESTAURANT" -> listOf(Color(0xFFE29578), Color(0xFFE76F51))
+                                        "BAR" -> listOf(Color(0xFF2E86AB), Color(0xFF1B4965))
+                                        else -> listOf(Color(0xFFF4A261), Color(0xFFE76F51))
+                                    }
+                                )
+                            )
+                    )
+                }
 
-                        if (establishment.isMagnonLabel) {
+                // Overlay contents containing category badge, Magnon ribbon, and favorite button
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Box(
                                 modifier = Modifier
-                                    .background(MontpellierOrangePrimary, RoundedCornerShape(12.dp))
+                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = "RPPLC 🐾",
-                                        color = Color.White,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                Text(
+                                    text = when (establishment.category) {
+                                        "RESTAURANT" -> "🍔 Resto"
+                                        "BAR" -> "🍸 Bar Pub"
+                                        else -> "☕ Commerce / Café"
+                                    },
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (establishment.isMagnonLabel) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(MontpellierOrangePrimary, RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.WorkspacePremium,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = "RPPLC 🐾",
+                                            color = Color.White,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
+
+                        // Favorite button
+                        IconButton(
+                            onClick = onToggleFavorite,
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = 0.8f), CircleShape)
+                                .size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (establishment.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "Favori",
+                                tint = if (establishment.isFavorite) Color.Red else MontpellierNavyDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
 
-                    // Favorite button
-                    IconButton(
-                        onClick = onToggleFavorite,
+                    // Neighborhood text aligned at bottom start
+                    Box(
                         modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.8f), CircleShape)
-                            .size(32.dp)
+                            .align(Alignment.BottomStart)
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = if (establishment.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = "Favori",
-                            tint = if (establishment.isFavorite) Color.Red else MontpellierNavyDark,
-                            modifier = Modifier.size(18.dp)
+                        Text(
+                            text = "📍 ${establishment.quartier}",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                }
-
-                // Neighborhood text
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "📍 ${establishment.quartier}",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
 
@@ -7750,38 +7784,74 @@ fun EstablishmentDetailSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = when (establishment.category) {
-                                    "RESTAURANT" -> listOf(Color(0xFFE29578), Color(0xFFE76F51))
-                                    "BAR" -> listOf(Color(0xFF2E86AB), Color(0xFF1B4965))
-                                    else -> listOf(Color(0xFFF4A261), Color(0xFFE76F51))
-                                }
-                            )
-                        )
-                        .padding(16.dp)
                 ) {
-                    Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = establishment.category,
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                    if (!establishment.imageUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(establishment.imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = establishment.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Black.copy(alpha = 0.1f), Color.Black.copy(alpha = 0.5f))
+                                    )
                                 )
-                            }
-                            if (establishment.isMagnonLabel) {
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = when (establishment.category) {
+                                            "RESTAURANT" -> listOf(Color(0xFFE29578), Color(0xFFE76F51))
+                                            "BAR" -> listOf(Color(0xFF2E86AB), Color(0xFF1B4965))
+                                            else -> listOf(Color(0xFFF4A261), Color(0xFFE76F51))
+                                        }
+                                    )
+                                )
+                        )
+                    }
+
+                    // Content details on top of image/gradient
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        Column(modifier = Modifier.align(Alignment.BottomStart)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
                                     modifier = Modifier
-                                        .background(MontpellierOrangePrimary, RoundedCornerShape(12.dp))
+                                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
-                                    Text("Recommandé RPPLC 🐾", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = when (establishment.category) {
+                                            "RESTAURANT" -> "🍔 Resto"
+                                            "BAR" -> "🍸 Bar Pub"
+                                            else -> "☕ Commerce / Café"
+                                        },
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                if (establishment.isMagnonLabel) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(MontpellierOrangePrimary, RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Recommandé RPPLC 🐾", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }

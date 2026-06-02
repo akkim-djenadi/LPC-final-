@@ -29,6 +29,12 @@ class Repository(private val dao: GuidementDao) {
         }
     }
 
+    suspend fun insertEstablishments(items: List<Establishment>) {
+        withContext(Dispatchers.IO) {
+            dao.insertEstablishments(items)
+        }
+    }
+
     suspend fun addReview(review: Review) {
         withContext(Dispatchers.IO) {
             dao.insertReview(review)
@@ -202,7 +208,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = true,
                             imageResName = "meat",
                             phoneNumber = "+33 4 67 66 24 10",
-                            hours = "12:00 - 14:00, 19:30 - 22:30"
+                            hours = "12:00 - 14:00, 19:30 - 22:30",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_grillardin.jpg"
                         ),
                         Establishment(
                             id = "est_diligence",
@@ -217,7 +224,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = true,
                             imageResName = "wine",
                             phoneNumber = "+33 4 67 66 12 21",
-                            hours = "19:30 - 22:00"
+                            hours = "19:30 - 22:00",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_diligence.jpg"
                         ),
                         Establishment(
                             id = "est_barbote",
@@ -232,7 +240,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = true,
                             imageResName = "beer",
                             phoneNumber = "+33 4 67 58 75 41",
-                            hours = "17:00 - 01:00"
+                            hours = "17:00 - 01:00",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_barbote.jpg"
                         ),
                         Establishment(
                             id = "est_cafe_mer",
@@ -247,7 +256,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = false,
                             imageResName = "cocktail",
                             phoneNumber = "+33 4 67 15 15 15",
-                            hours = "10:00 - 01:00"
+                            hours = "10:00 - 01:00",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_café_de_la_mer.jpg"
                         ),
                         Establishment(
                             id = "est_bonobo",
@@ -262,7 +272,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = false,
                             imageResName = "coffee",
                             phoneNumber = "+33 4 67 55 99 11",
-                            hours = "09:00 - 17:00"
+                            hours = "09:00 - 17:00",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/bonobo_cafe.jpg"
                         ),
                         Establishment(
                             id = "est_pates",
@@ -277,7 +288,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = false,
                             imageResName = "pasta",
                             phoneNumber = "+33 4 67 60 77 66",
-                            hours = "12:00 - 14:30, 19:30 - 22:30"
+                            hours = "12:00 - 14:30, 19:30 - 22:30",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_jardin_des_pâtes.jpg"
                         ),
                         Establishment(
                             id = "est_antigone",
@@ -292,7 +304,8 @@ class Repository(private val dao: GuidementDao) {
                             isMagnonLabel = false,
                             imageResName = "coffee",
                             phoneNumber = "+33 4 67 02 02 02",
-                            hours = "08:00 - 20:00"
+                            hours = "08:00 - 20:00",
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/brasserie_du_corum.jpg"
                         )
                     )
                 )

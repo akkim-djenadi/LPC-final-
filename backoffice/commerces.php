@@ -1,4 +1,30 @@
 <?php
+// Helper function to extract a Point array [lng, lat] from any GeoJSON geometry type
+if (!function_exists('get_point_coordinates')) {
+    function get_point_coordinates($geometry) {
+        $coords = isset($geometry['coordinates']) ? $geometry['coordinates'] : null;
+        if (empty($coords)) {
+            return [3.8794, 43.6085];
+        }
+        
+        // Helper function to recursively find the first array of size 2 containing numeric values
+        $find_first_point = function($arr) use (&$find_first_point) {
+            if (!is_array($arr)) return null;
+            if (count($arr) >= 2 && is_numeric($arr[0]) && is_numeric($arr[1])) {
+                return [$arr[0], $arr[1]];
+            }
+            foreach ($arr as $el) {
+                $p = $find_first_point($el);
+                if ($p !== null) return $p;
+            }
+            return null;
+        };
+        
+        $p = $find_first_point($coords);
+        return ($p !== null) ? $p : [3.8794, 43.6085];
+    }
+}
+
 $commerces_file = 'data/commerces.geojson';
 $commerces = [];
 $feedback_msg = "";
@@ -8,7 +34,29 @@ $feedback_type = "success"; // success or error
 if (file_exists($commerces_file)) {
     $geojson = json_decode(file_get_contents($commerces_file), true);
     if ($geojson && isset($geojson['features'])) {
-        $commerces = $geojson['features'];
+        $features = $geojson['features'];
+        $modified = false;
+        foreach ($features as $idx => &$feat) {
+            if (!isset($feat['properties'])) {
+                $feat['properties'] = array();
+                $modified = true;
+            }
+            if (!isset($feat['properties']['id']) || empty($feat['properties']['id'])) {
+                if (isset($feat['id']) && !empty($feat['id'])) {
+                    $feat['properties']['id'] = $feat['id'];
+                } else {
+                    $clean_name = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $feat['properties']['name'] ?? 'com'));
+                    $feat['properties']['id'] = 'mer_' . (empty($clean_name) ? 'com' : $clean_name) . '_' . ($idx + 1);
+                }
+                $modified = true;
+            }
+        }
+        unset($feat);
+        $commerces = $features;
+        if ($modified) {
+            $geojson['features'] = $features;
+            file_put_contents($commerces_file, json_encode($geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
     }
 }
 
@@ -261,10 +309,10 @@ include 'header.php';
                         <tbody class="divide-y divide-slate-100 text-sm">
                             <?php foreach ($commerces as $feature): 
                                 $props = $feature['properties'];
-                                $coords = $feature['geometry']['coordinates'] ?? [0.0, 0.0];
+                                $coords = get_point_coordinates($feature['geometry'] ?? []);
                                 $img_name = $props['github_image'] ?? '';
                                 $img_url = !empty($img_name) 
-                                    ? "https://raw.githubusercontent.com/akkim-djenadi/le-petit-clapas-/main/images_commerces/" . urlencode($img_name)
+                                    ? "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/" . urlencode($img_name)
                                     : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=150&q=80"; // fallback
                             ?>
                                 <tr class="hover:bg-slate-50 transition duration-100">

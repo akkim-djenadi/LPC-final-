@@ -85,7 +85,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
             <div>
                 <p class="font-medium text-slate-300">Répertoire GitHub lié :</p>
-                <a href="https://github.com/akkim-djenadi/le-petit-clapas-/tree/main/images_commerces" target="_blank" class="text-blue-400 truncate block hover:underline">images_commerces ↗</a>
+                <a href="https://github.com/akkim-djenadi/LPC-final-/tree/main/images_commerces" target="_blank" class="text-blue-400 truncate block hover:underline">images_commerces ↗</a>
             </div>
         </div>
     </aside>
