@@ -67,7 +67,7 @@ class GuidementViewModel(private val repository: Repository, private val context
     val authError = MutableStateFlow<String?>(null)
 
     private val client = OkHttpClient()
-    private val apiBaseUrl = "https://ais-dev-m4ijnhhe3gxas6rjtsd7cm-329380409595.europe-west2.run.app/backoffice/api.php"
+    private val apiBaseUrl = "https://lepetitclapas.lagenceduclapas.fr/backoffice/api.php"
 
     fun logout() {
         prefs.edit().clear().apply()

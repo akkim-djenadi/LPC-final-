@@ -61,6 +61,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span class="text-sm">Liste & Édition de lot</span>
             </a>
             
+            <a href="google_places_sync.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'google_places_sync.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
+                <span class="material-symbols-rounded">sync_alt</span>
+                <span class="text-sm">Synchronisation Google</span>
+            </a>
+            
             <a href="jeux.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-150 <?php echo ($current_page == 'jeux.php') ? 'bg-orange-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                 <span class="material-symbols-rounded">explore</span>
                 <span class="text-sm">Configuration Jeux</span>
