@@ -38,12 +38,90 @@ function read_json_data($file_path, $default = array()) {
     return $default;
 }
 
+function ultra_clean($str) {
+    $str = mb_strtolower($str, 'UTF-8');
+    $str = str_replace('&', 'et', $str);
+    $transliterator = array(
+        'à'=>'a', 'á'=>'a', 'â'=>'a', 'ã'=>'a', 'ä'=>'a', 'å'=>'a', 'æ'=>'ae', 'ç'=>'c',
+        'è'=>'e', 'é'=>'e', 'ê'=>'e', 'ë'=>'e', 'ì'=>'i', 'í'=>'i', 'î'=>'i', 'ï'=>'i',
+        'ð'=>'d', 'ñ'=>'n', 'ò'=>'o', 'ó'=>'o', 'ô'=>'o', 'õ'=>'o', 'ö'=>'o', 'ø'=>'o',
+        'ù'=>'u', 'ú'=>'u', 'û'=>'u', 'ü'=>'u', 'ý'=>'y', 'ÿ'=>'y', 'œ'=>'oe', 'ß'=>'ss',
+        '’'=>'', '\''=>''
+    );
+    $str = strtr($str, $transliterator);
+    $str = preg_replace('/[^a-z0-9]/', '', $str);
+    return $str;
+}
+
+function remove_french_prefixes_str($str) {
+    return preg_replace('/^(le|la|les|un|une|du|de|des|au|aux|l|d)/', '', $str);
+}
+
+function find_closest_image($name) {
+    static $images = null;
+    if ($images === null) {
+        $file = __DIR__ . '/data/images_list.txt';
+        if (file_exists($file) && is_readable($file)) {
+            $content = file_get_contents($file);
+            $images = preg_split('/\r\n|\r|\n/', $content);
+            $images = array_filter(array_map('trim', $images));
+        } else {
+            $images = array();
+        }
+    }
+    
+    if (empty($images)) {
+        return '';
+    }
+    
+    $clean_name = ultra_clean($name);
+    $clean_name_noprefix = remove_french_prefixes_str($clean_name);
+    
+    $fuzzy_match = '';
+    
+    foreach ($images as $img) {
+        $img_no_ext = pathinfo($img, PATHINFO_FILENAME);
+        $clean_img = ultra_clean($img_no_ext);
+        $clean_img_noprefix = remove_french_prefixes_str($clean_img);
+        
+        // Match 1: Extract match
+        if ($clean_name === $clean_img) {
+            return $img;
+        }
+        
+        // Match 2: Prefix-removed match
+        if (!empty($clean_name_noprefix) && !empty($clean_img_noprefix) && $clean_name_noprefix === $clean_img_noprefix) {
+            return $img;
+        }
+        
+        // Match 3: Check if either is a substring of another
+        if (empty($fuzzy_match)) {
+            if (!empty($clean_name) && !empty($clean_img)) {
+                if (strpos($clean_name, $clean_img) !== false || strpos($clean_img, $clean_name) !== false) {
+                    $fuzzy_match = $img;
+                }
+            }
+        }
+    }
+    
+    return $fuzzy_match;
+}
+
 // Automatically resolve and inject correct Raw GitHub content images dynamically on-the-fly
 function resolve_commerces_images($payload) {
     if (isset($payload['features']) && is_array($payload['features'])) {
         foreach ($payload['features'] as $k => $f) {
             if (isset($f['properties'])) {
                 $img_name = $f['properties']['github_image'] ?? '';
+                if (empty($img_name)) {
+                    $existing_img = $f['properties']['image_url'] ?? '';
+                    if (!empty($existing_img) && strpos($existing_img, 'http') === false) {
+                        $img_name = basename($existing_img);
+                    }
+                }
+                if (empty($img_name)) {
+                    $img_name = find_closest_image($f['properties']['name'] ?? '');
+                }
                 if (empty($img_name)) {
                     $slug = mb_strtolower($f['properties']['name'] ?? '', 'UTF-8');
                     $slug = preg_replace('/[\s\'’\-–—,.\/\\\]+/', '_', $slug);

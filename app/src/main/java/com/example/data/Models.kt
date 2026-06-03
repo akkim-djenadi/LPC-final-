@@ -19,7 +19,9 @@ data class Establishment(
     val isFavorite: Boolean = false,
     val phoneNumber: String = "+33 4 67 00 00 00",
     val hours: String = "12:00 - 15:00, 19:00 - 23:00",
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    val latitude: Double = 43.6107,
+    val longitude: Double = 3.8767
 )
 
 @Entity(tableName = "reviews")

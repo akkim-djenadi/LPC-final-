@@ -562,6 +562,7 @@ class GuidementViewModel(private val repository: Repository, private val context
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 try {
+                    android.util.Log.d("GuidementViewModel", "Starting synchronization of establishments...")
                     val url = "$apiBaseUrl?task=commerces"
                     val request = Request.Builder().url(url).build()
                     client.newCall(request).execute().use { response ->
@@ -570,6 +571,7 @@ class GuidementViewModel(private val repository: Repository, private val context
                             val json = JSONObject(resData)
                             val features = json.optJSONArray("features")
                             if (features != null && features.length() > 0) {
+                                android.util.Log.d("GuidementViewModel", "Received ${features.length()} features from api.")
                                 // Get currently saved establishments to retain favorites
                                 val existingList = repository.allEstablishments.firstOrNull() ?: emptyList()
                                 val favoriteIds = existingList.filter { it.isFavorite }.map { it.id }.toSet()
@@ -578,13 +580,22 @@ class GuidementViewModel(private val repository: Repository, private val context
                                 for (i in 0 until features.length()) {
                                     val feature = features.getJSONObject(i)
                                     val properties = feature.optJSONObject("properties") ?: JSONObject()
-                                    val geometry = feature.optJSONObject("geometry") ?: JSONObject()
-                                    val coordinates = geometry.optJSONArray("coordinates")
-                                    
-                                    val id = properties.optString("id", "")
-                                    if (id.isEmpty()) continue
                                     
                                     val name = properties.optString("name", "Commerce")
+                                    
+                                    // Robust ID parsing
+                                    var id = properties.optString("id", "")
+                                    if (id.isEmpty()) {
+                                        id = properties.optString("@id", "")
+                                    }
+                                    if (id.isEmpty()) {
+                                        id = feature.optString("id", "")
+                                    }
+                                    if (id.isEmpty()) {
+                                        val cleanName = name.replace("[^a-zA-Z0-9]".toRegex(), "").lowercase()
+                                        id = "mer_" + (if (cleanName.isEmpty()) "com" else cleanName) + "_" + i
+                                    }
+                                    
                                     val categoryStr = properties.optString("category", "Shopping")
                                     
                                     // Map Category based on application rules: RESTAURANT, BAR, CAFE
@@ -604,11 +615,42 @@ class GuidementViewModel(private val repository: Repository, private val context
                                     val address = if (street.isEmpty()) "" else "$street $housenumber"
                                     val cleanAddress = if (address.trim().isEmpty()) "Montpellier, France" else address.trim() + ", Montpellier"
                                     
+                                    // Safe coordinates resolution for Point and Polygon to prevent JSONException format crashes
+                                    var latVal = 43.6107
+                                    var lngVal = 3.8767
+                                    
+                                    val geometry = feature.optJSONObject("geometry")
+                                    if (geometry != null) {
+                                        val geomType = geometry.optString("type", "")
+                                        val coordsArray = geometry.optJSONArray("coordinates")
+                                        if (coordsArray != null) {
+                                            if (geomType.equals("Point", ignoreCase = true)) {
+                                                if (coordsArray.length() >= 2) {
+                                                    lngVal = coordsArray.optDouble(0, 3.8767)
+                                                    latVal = coordsArray.optDouble(1, 43.6107)
+                                                }
+                                            } else if (geomType.equals("Polygon", ignoreCase = true) || geomType.equals("MultiPolygon", ignoreCase = true)) {
+                                                // Polygon format: [[[lng, lat], [lng, lat], ...]]
+                                                val outerRing = coordsArray.optJSONArray(0)
+                                                if (outerRing != null && outerRing.length() > 0) {
+                                                    val firstCoordPair = outerRing.optJSONArray(0)
+                                                    if (firstCoordPair != null && firstCoordPair.length() >= 2) {
+                                                        lngVal = firstCoordPair.optDouble(0, 3.8767)
+                                                        latVal = firstCoordPair.optDouble(1, 43.6107)
+                                                    } else {
+                                                        // Fallback is in case it matches [[lng, lat]] flat structures
+                                                        if (outerRing.length() >= 2) {
+                                                            lngVal = outerRing.optDouble(0, 3.8767)
+                                                            latVal = outerRing.optDouble(1, 43.6107)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
                                     // Neighborhood logic (quartier) based on coordinate bounds
                                     var quartier = "Alentours"
-                                    val latVal = if (coordinates != null && coordinates.length() >= 2) coordinates.getDouble(1) else 43.6107
-                                    val lngVal = if (coordinates != null && coordinates.length() >= 2) coordinates.getDouble(0) else 3.8767
-                                    
                                     if (latVal in 43.606..43.615 && lngVal in 3.870..3.882) {
                                         quartier = "Écusson"
                                     } else if (latVal > 43.615 && lngVal > 3.875) {
@@ -646,19 +688,24 @@ class GuidementViewModel(private val repository: Repository, private val context
                                             isFavorite = favoriteIds.contains(id),
                                             phoneNumber = if (phone.isEmpty()) "Pas de numéro" else phone,
                                             hours = "09:00 - 19:00",
-                                            imageUrl = imageUrl
+                                            imageUrl = imageUrl,
+                                            latitude = latVal,
+                                            longitude = lngVal
                                         )
                                     )
                                 }
                                 
                                 if (establishmentsToSave.isNotEmpty()) {
+                                    android.util.Log.d("GuidementViewModel", "Inserting ${establishmentsToSave.size} synced establishments into local Room database.")
                                     repository.insertEstablishments(establishmentsToSave)
                                 }
                             }
+                        } else {
+                            android.util.Log.e("GuidementViewModel", "Server response unsuccessful: ${response.code}")
                         }
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    android.util.Log.e("GuidementViewModel", "Error in syncWithServer", e)
                 }
             }
         }

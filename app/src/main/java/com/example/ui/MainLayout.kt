@@ -1089,18 +1089,10 @@ fun generateOsmHtml(challenges: List<Challenge>, rawEsts: List<Establishment>): 
         """.trimIndent())
     }
 
-    // 2. Add establishments with predefined coords relative to Montpellier center
+    // 2. Add establishments with coordinates stored in the database
     rawEsts.forEach { est ->
-        val (lat, lng) = when (est.id) {
-            "est_grillardin" -> Pair(43.6105, 3.8755)
-            "est_diligence" -> Pair(43.6120, 3.8785)
-            "est_barbote" -> Pair(43.6068, 3.8760)
-            "est_cafe_mer" -> Pair(43.5995, 3.8975)
-            "est_bonobo" -> Pair(43.6142, 3.8795)
-            "est_pates" -> Pair(43.6186, 3.8824)
-            "est_antigone" -> Pair(43.6081, 3.8872)
-            else -> Pair(43.6107, 3.8767)
-        }
+        val lat = est.latitude
+        val lng = est.longitude
         val emoji = when (est.category) {
             "RESTAURANT" -> "🍽️"
             "BAR" -> "🍺"

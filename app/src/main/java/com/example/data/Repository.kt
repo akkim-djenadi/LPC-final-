@@ -209,7 +209,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "meat",
                             phoneNumber = "+33 4 67 66 24 10",
                             hours = "12:00 - 14:00, 19:30 - 22:30",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_grillardin.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_grillardin.jpg",
+                            latitude = 43.6105,
+                            longitude = 3.8755
                         ),
                         Establishment(
                             id = "est_diligence",
@@ -225,7 +227,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "wine",
                             phoneNumber = "+33 4 67 66 12 21",
                             hours = "19:30 - 22:00",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_diligence.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_diligence.jpg",
+                            latitude = 43.6120,
+                            longitude = 3.8785
                         ),
                         Establishment(
                             id = "est_barbote",
@@ -241,7 +245,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "beer",
                             phoneNumber = "+33 4 67 58 75 41",
                             hours = "17:00 - 01:00",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_barbote.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/la_barbote.jpg",
+                            latitude = 43.6068,
+                            longitude = 3.8760
                         ),
                         Establishment(
                             id = "est_cafe_mer",
@@ -257,7 +263,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "cocktail",
                             phoneNumber = "+33 4 67 15 15 15",
                             hours = "10:00 - 01:00",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_café_de_la_mer.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_café_de_la_mer.jpg",
+                            latitude = 43.5995,
+                            longitude = 3.8975
                         ),
                         Establishment(
                             id = "est_bonobo",
@@ -273,12 +281,14 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "coffee",
                             phoneNumber = "+33 4 67 55 99 11",
                             hours = "09:00 - 17:00",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/bonobo_cafe.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/bonobo_cafe.jpg",
+                            latitude = 43.6142,
+                            longitude = 3.8795
                         ),
                         Establishment(
                             id = "est_pates",
                             name = "Le Jardin des Pâtes",
-                            description = "Dans le quartier chaleureux et bohème des Beaux-Arts, un restaurant pittoresque servant d'exquises pâtes bio faites maison dans un charmant jardin arboré.",
+                            description = "Dans le quartier chaleureux et bohème des Beaux-Arts, un restaurant pittoiresque servant d'exquises pâtes bio faites maison dans un charmant jardin arboré.",
                             category = "RESTAURANT",
                             rating = 4.4f,
                             verdict = "On adore ce jardin caché en plein cœur des Beaux-Arts. Des assiettes de pâtes généreuses issues de blés anciens. Une parenthèse poétique et gourmande loin du tumulte.",
@@ -289,7 +299,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "pasta",
                             phoneNumber = "+33 4 67 60 77 66",
                             hours = "12:00 - 14:30, 19:30 - 22:30",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_jardin_des_pâtes.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/le_jardin_des_pâtes.jpg",
+                            latitude = 43.6186,
+                            longitude = 3.8824
                         ),
                         Establishment(
                             id = "est_antigone",
@@ -305,7 +317,9 @@ class Repository(private val dao: GuidementDao) {
                             imageResName = "coffee",
                             phoneNumber = "+33 4 67 02 02 02",
                             hours = "08:00 - 20:00",
-                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/brasserie_du_corum.jpg"
+                            imageUrl = "https://raw.githubusercontent.com/akkim-djenadi/LPC-final-/main/images_commerces/brasserie_du_corum.jpg",
+                            latitude = 43.6081,
+                            longitude = 3.8872
                         )
                     )
                 )
